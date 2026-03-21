@@ -31,7 +31,22 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+Verify each gate applies to this feature and mark accordingly:
+
+- [ ] **I. Monorepo Structure** — Changes are scoped to `ui/`, `api/`, or `infra/` only.
+  No cross-workspace source imports introduced.
+- [ ] **II. DDD Layering** — New API code placed in the correct project
+  (Domain / Application / Infrastructure / Api). Dependency direction flows inward only.
+- [ ] **III. SOLID** — No SOLID violations identifiable in proposed design. Reviewer
+  sign-off required before merge.
+- [ ] **IV. TDD** — Test tasks are listed BEFORE implementation tasks. Tests will be
+  committed and confirmed RED prior to any implementation commit.
+- [ ] **V. OpenAPI-First** — New/changed endpoints include `[ProducesResponseType]`
+  annotations. CI will regenerate the OpenAPI artefact and UI client.
+- [ ] **VI. IaC** — Any new AWS resources are provisioned via Terraform in `infra/`.
+  No console-only changes planned.
+- [ ] **VII. Frontend Data Layer** — All new API calls in `ui/` go through the generated
+  client + TanStack Query hooks. No bare fetch/axios wrappers.
 
 ## Project Structure
 
@@ -89,6 +104,31 @@ api/
 
 ios/ or android/
 └── [platform-specific structure: feature modules, UI flows, platform tests]
+
+# [REMOVE IF UNUSED] Option 4: Monorepo — .NET DDD API + React UI + Terraform (Roster default)
+ui/
+├── src/
+│   ├── api/           # generated OpenAPI client (do not hand-edit)
+│   ├── components/
+│   ├── hooks/         # TanStack Query hooks wrapping generated client
+│   └── pages/
+└── tests/
+
+api/
+├── Roster.Domain/
+├── Roster.Domain.Tests/
+├── Roster.Application/
+├── Roster.Application.Tests/
+├── Roster.Infrastructure/
+├── Roster.Infrastructure.Tests/
+├── Roster.Api/
+└── Roster.Api.Tests/  # contract tests
+
+infra/
+├── modules/
+└── environments/
+    ├── dev/
+    └── prod/
 ```
 
 **Structure Decision**: [Document the selected structure and reference the real

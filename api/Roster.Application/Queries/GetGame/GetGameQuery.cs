@@ -1,0 +1,25 @@
+namespace Roster.Application.Queries.GetGame;
+
+using MediatR;
+using Roster.Application.Commands.AssignInningFielding;
+
+public record GetGameQuery(Guid GameId) : IRequest<GameDto?>;
+public record GetGamesQuery(Guid TeamId) : IRequest<IReadOnlyList<GameSummaryDto>>;
+
+public record GameDto(
+    Guid GameId,
+    string Date,
+    string? Opponent,
+    int InningCount,
+    bool IsLocked,
+    IReadOnlyList<Guid> AbsentPlayerIds,
+    IReadOnlyList<Guid> BattingOrder,
+    IReadOnlyDictionary<int, IReadOnlyList<FieldingAssignmentDto>> InningAssignments);
+
+public record GameSummaryDto(
+    Guid GameId,
+    string Date,
+    string? Opponent,
+    int InningCount,
+    bool IsLocked,
+    IReadOnlyList<Guid> AbsentPlayerIds);

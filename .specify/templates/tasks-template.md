@@ -8,7 +8,10 @@ description: "Task list template for feature implementation"
 **Input**: Design documents from `/specs/[###-feature-name]/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 
-**Tests**: The examples below include test tasks. Tests are OPTIONAL - only include them if explicitly requested in the feature specification.
+**Tests**: The examples below include test tasks. For the `ui/` workspace, tests are OPTIONAL
+and included only when explicitly requested. For the `api/` workspace (Domain and Application
+layers), TDD is NON-NEGOTIABLE per the constitution — test tasks MUST precede implementation
+tasks regardless of whether tests are explicitly requested.
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
@@ -23,7 +26,13 @@ description: "Task list template for feature implementation"
 - **Single project**: `src/`, `tests/` at repository root
 - **Web app**: `backend/src/`, `frontend/src/`
 - **Mobile**: `api/src/`, `ios/src/` or `android/src/`
-- Paths shown below assume single project - adjust based on plan.md structure
+- **Monorepo — .NET DDD + React + Terraform (Roster default)**:
+  - API domain logic: `api/Roster.Domain/`, `api/Roster.Application/`
+  - API infrastructure: `api/Roster.Infrastructure/`, `api/Roster.Api/`
+  - API tests: `api/Roster.*.Tests/` (unit alongside source; contract in `Roster.Api.Tests/`)
+  - UI source: `ui/src/` — generated client in `ui/src/api/`, hooks in `ui/src/hooks/`
+  - Infrastructure: `infra/modules/`, `infra/environments/`
+- Paths shown below assume single project — adjust based on plan.md structure
 
 <!-- 
   ============================================================================

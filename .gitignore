@@ -1,0 +1,47 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+packages/
+TestResults/
+*.nupkg
+
+# Node
+node_modules/
+dist/
+build/
+.cache/
+*.log
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+
+# IDEs
+.vscode/settings.json
+.idea/
+*.iml
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfplan
+crash.log
+.terraform.lock.hcl
+
+# Docker
+.dockerignore
+
+# Generated
+ui/src/api/index.ts
+openapi.json
