@@ -13,7 +13,13 @@ public class TeamsController : BaseController
 
     public TeamsController(IMediator mediator) => _mediator = mediator;
 
-    /// <summary>Creates a new team and returns the one-time access secret.</summary>
+    /// <summary>Create a new team and receive the one-time access secret.</summary>
+    /// <remarks>
+    /// Creates a new team with the specified name and sport. Returns the team ID and a one-time plaintext access secret
+    /// that must be saved by the coach—it is never retrievable again.
+    ///
+    /// This endpoint does not require authentication (X-Team-Secret header).
+    /// </remarks>
     [HttpPost]
     [ProducesResponseType(typeof(CreateTeamResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -26,7 +32,11 @@ public class TeamsController : BaseController
             new CreateTeamResponse(result.TeamId, request.Name, request.SportName, result.AccessSecret));
     }
 
-    /// <summary>Returns team metadata. Requires X-Team-Secret header.</summary>
+    /// <summary>Retrieve team metadata including sport details, skills, and positions.</summary>
+    /// <remarks>
+    /// Returns the team's name, sport information, and the list of available skills and positions for that sport.
+    /// Requires X-Team-Secret header authentication.
+    /// </remarks>
     [HttpGet("{teamId:guid}")]
     [ProducesResponseType(typeof(GetTeamResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]

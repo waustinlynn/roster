@@ -13,7 +13,11 @@ public class PlayersController : BaseController
     private readonly IMediator _mediator;
     public PlayersController(IMediator mediator) => _mediator = mediator;
 
-    /// <summary>Lists all players on the roster.</summary>
+    /// <summary>List all players on the team roster.</summary>
+    /// <remarks>
+    /// Returns all players on the roster, including both active and inactive players with their skill ratings.
+    /// Requires X-Team-Secret header authentication.
+    /// </remarks>
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<PlayerDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -24,7 +28,11 @@ public class PlayersController : BaseController
         return Ok(result);
     }
 
-    /// <summary>Adds a player to the roster.</summary>
+    /// <summary>Add a new player to the team roster.</summary>
+    /// <remarks>
+    /// Creates a new player with no initial skill ratings. The player is active by default.
+    /// Requires X-Team-Secret header authentication.
+    /// </remarks>
     [HttpPost]
     [ProducesResponseType(typeof(PlayerResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -36,7 +44,12 @@ public class PlayersController : BaseController
         return StatusCode(201, new PlayerResponse(result.PlayerId, request.Name, true, new Dictionary<string, int>()));
     }
 
-    /// <summary>Sets or updates a skill rating for a player.</summary>
+    /// <summary>Rate or update a skill for a player (1-5 scale).</summary>
+    /// <remarks>
+    /// Sets or updates a single skill rating for an active player. Rating must be between 1 and 5 inclusive.
+    /// The skill name must be valid for the team's sport.
+    /// Requires X-Team-Secret header authentication.
+    /// </remarks>
     [HttpPut("{playerId:guid}/skills/{skillName}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -49,7 +62,12 @@ public class PlayersController : BaseController
         return NoContent();
     }
 
-    /// <summary>Deactivates a player. Historical data preserved.</summary>
+    /// <summary>Deactivate a player and remove them from future games.</summary>
+    /// <remarks>
+    /// Marks a player as inactive. All historical game data and assignments are preserved.
+    /// Inactive players cannot be added to future game lineups or fielding assignments.
+    /// Requires X-Team-Secret header authentication.
+    /// </remarks>
     [HttpDelete("{playerId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
