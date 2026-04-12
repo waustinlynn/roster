@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   redpanda:
-    image: vectorized/redpanda:latest
+    image: docker.redpanda.com/redpandadata/redpanda:latest
     container_name: roster-redpanda
     command:
       - redpanda
@@ -29,7 +29,7 @@ services:
       start_period: 15s
 
   redpanda-init:
-    image: vectorized/redpanda:latest
+    image: docker.redpanda.com/redpandadata/redpanda:latest
     container_name: roster-redpanda-init
     depends_on:
       redpanda:
