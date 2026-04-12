@@ -174,7 +174,7 @@ Must be complete before any user story implementation begins.
 - [ ] T059 [P] Write integration test for Redpanda retry/503 behaviour in `api/Roster.Infrastructure.Tests/EventStore/RedpandaEventStoreTests.cs` using Testcontainers: stop Redpanda mid-publish, assert `EventStoreUnavailableException` is thrown after < 5 seconds; verify no partial events persisted
 - [ ] T060 [P] Write contract tests in `api/Roster.Api.Tests/` using `WebApplicationFactory` + `Microsoft.AspNetCore.Mvc.Testing`: verify all endpoints return correct HTTP status codes per contracts/api.md; verify OpenAPI spec is reachable at `/swagger/v1/swagger.json`; seed in-memory store with test data
 - [ ] T061 [P] Add structured logging via `Microsoft.Extensions.Logging` throughout `api/`: log event published (teamId, eventType), replay start/complete (event count, duration), aggregate-not-found 404, domain validation failures, Redpanda retry attempts; avoid logging `AccessSecretHash` or raw secrets
-- [ ] T062 Export `openapi.json` to repo root on API startup (via `IStartupFilter` or a post-build step) so orval can consume it without a live server; add `npm run generate-client` script to `ui/package.json` that reads `../openapi.json`
+- [x] T062 Export `openapi.json` to repo root on API startup (via `IStartupFilter` or a post-build step) so orval can consume it without a live server; add `npm run generate-client` script to `ui/package.json` that reads `../openapi.json`
 - [ ] T063 Run quickstart.md validation checklist end-to-end: `docker compose up -d redpanda`, `dotnet run --project api/Roster.Api`, `npm run generate-client --prefix ui`, `npm run dev --prefix ui`; verify all checklist items pass
 
 ---
