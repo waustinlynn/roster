@@ -29,7 +29,7 @@ public static class InfrastructureServiceExtensions
         services.AddSingleton<IEventStore, RedpandaEventStore>();
 
         // Access secret service
-        services.AddSingleton<AccessSecretService>();
+        services.AddSingleton<IAccessSecretService, AccessSecretService>();
 
         return services;
     }
