@@ -1,37 +1,31 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLocalTeam } from '../hooks/useLocalTeam'
+import { useCreateTeam } from '../hooks/useTeam'
+import { getTeam } from '../api/index'
+import type { CreateTeamRequest } from '../api/index'
 
 export function Landing() {
   const navigate = useNavigate()
   const { save } = useLocalTeam()
 
-  const [createForm, setCreateForm] = useState({ name: '', sportName: 'Softball' })
+  const [createForm, setCreateForm] = useState<CreateTeamRequest>({ name: '', sportName: 'Softball' })
   const [secretForm, setSecretForm] = useState({ teamId: '', secret: '' })
-  const [error, setError] = useState<string | null>(null)
   const [newSecret, setNewSecret] = useState<string | null>(null)
   const [createdTeamId, setCreatedTeamId] = useState<string | null>(null)
+  const [enterError, setEnterError] = useState<string | null>(null)
+  const [enterLoading, setEnterLoading] = useState(false)
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const createTeam = useCreateTeam()
+
+  const handleCreate = (e: React.FormEvent) => {
     e.preventDefault()
-    setError(null)
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5001'}/teams`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(createForm),
-      })
-      if (!res.ok) {
-        const err = await res.json()
-        setError(err.detail ?? 'Failed to create team')
-        return
-      }
-      const data = await res.json()
-      setNewSecret(data.accessSecret)
-      setCreatedTeamId(data.teamId)
-    } catch {
-      setError('Network error. Is the API running?')
-    }
+    createTeam.mutate({ data: createForm }, {
+      onSuccess: (result) => {
+        setNewSecret(result.accessSecret!)
+        setCreatedTeamId(result.teamId!)
+      },
+    })
   }
 
   const handleSaveAndContinue = () => {
@@ -42,9 +36,21 @@ export function Landing() {
 
   const handleEnterSecret = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError(null)
-    save(secretForm.teamId, secretForm.secret)
-    navigate(`/teams/${secretForm.teamId}`)
+    setEnterError(null)
+    setEnterLoading(true)
+    try {
+      // Temporarily store to let the axios interceptor inject the secret,
+      // then validate against the API before persisting.
+      localStorage.setItem('roster_team', JSON.stringify({ teamId: secretForm.teamId, secret: secretForm.secret }))
+      await getTeam(secretForm.teamId)
+      save(secretForm.teamId, secretForm.secret)
+      navigate(`/teams/${secretForm.teamId}`)
+    } catch {
+      localStorage.removeItem('roster_team')
+      setEnterError('Invalid team ID or secret. Please check and try again.')
+    } finally {
+      setEnterLoading(false)
+    }
   }
 
   if (newSecret) {
@@ -66,39 +72,68 @@ export function Landing() {
 
       <h2>Create a New Team</h2>
       <form onSubmit={handleCreate}>
-        <div>
+        <div style={{ marginBottom: 10 }}>
           <label>Team Name<br />
-            <input value={createForm.name} onChange={e => setCreateForm(f => ({ ...f, name: e.target.value }))} required maxLength={100} />
+            <input
+              value={createForm.name}
+              onChange={e => setCreateForm(f => ({ ...f, name: e.target.value }))}
+              required
+              maxLength={100}
+              style={{ width: '100%', padding: '6px 8px', boxSizing: 'border-box' }}
+            />
           </label>
         </div>
-        <div>
+        <div style={{ marginBottom: 10 }}>
           <label>Sport<br />
-            <select value={createForm.sportName} onChange={e => setCreateForm(f => ({ ...f, sportName: e.target.value }))}>
+            <select
+              value={createForm.sportName}
+              onChange={e => setCreateForm(f => ({ ...f, sportName: e.target.value }))}
+            >
               <option value="Softball">Softball</option>
             </select>
           </label>
         </div>
-        <button type="submit">Create Team</button>
+        <button type="submit" disabled={createTeam.isPending}>
+          {createTeam.isPending ? 'Creating…' : 'Create Team'}
+        </button>
+        {createTeam.isError && (
+          <p style={{ color: 'red', marginTop: 8 }}>
+            {(createTeam.error as { detail?: string })?.detail ?? 'Failed to create team'}
+          </p>
+        )}
       </form>
 
-      <hr />
+      <hr style={{ margin: '24px 0' }} />
 
       <h2>Return to Your Team</h2>
       <form onSubmit={handleEnterSecret}>
-        <div>
+        <div style={{ marginBottom: 10 }}>
           <label>Team ID<br />
-            <input value={secretForm.teamId} onChange={e => setSecretForm(f => ({ ...f, teamId: e.target.value }))} placeholder="xxxxxxxx-xxxx-..." required />
+            <input
+              value={secretForm.teamId}
+              onChange={e => setSecretForm(f => ({ ...f, teamId: e.target.value }))}
+              placeholder="xxxxxxxx-xxxx-..."
+              required
+              style={{ width: '100%', padding: '6px 8px', boxSizing: 'border-box' }}
+            />
           </label>
         </div>
-        <div>
+        <div style={{ marginBottom: 10 }}>
           <label>Access Secret<br />
-            <input type="password" value={secretForm.secret} onChange={e => setSecretForm(f => ({ ...f, secret: e.target.value }))} required />
+            <input
+              type="password"
+              value={secretForm.secret}
+              onChange={e => setSecretForm(f => ({ ...f, secret: e.target.value }))}
+              required
+              style={{ width: '100%', padding: '6px 8px', boxSizing: 'border-box' }}
+            />
           </label>
         </div>
-        <button type="submit">Access Team</button>
+        <button type="submit" disabled={enterLoading}>
+          {enterLoading ? 'Checking…' : 'Access Team'}
+        </button>
+        {enterError && <p style={{ color: 'red', marginTop: 8 }}>{enterError}</p>}
       </form>
-
-      {error && <p style={{ color: 'red' }}>{error}</p>}
     </div>
   )
 }
