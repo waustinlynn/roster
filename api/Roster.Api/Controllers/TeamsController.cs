@@ -32,6 +32,22 @@ public class TeamsController : BaseController
             new CreateTeamResponse(result.TeamId, request.Name, request.SportName, result.AccessSecret));
     }
 
+    /// <summary>Resolve the authenticated team from the X-Team-Secret header.</summary>
+    /// <remarks>
+    /// Returns the team ID and name for the provided secret. Used by clients that have a secret
+    /// but do not know their team ID. Requires X-Team-Secret header authentication.
+    /// </remarks>
+    [HttpGet("me")]
+    [ProducesResponseType(typeof(ResolveTeamResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ResolveTeam(CancellationToken ct)
+    {
+        var result = await _mediator.Send(new GetTeamQuery(ResolvedTeamId), ct);
+        if (result is null) return NotFound();
+
+        return Ok(new ResolveTeamResponse(result.TeamId, result.Name));
+    }
+
     /// <summary>Retrieve team metadata including sport details, skills, and positions.</summary>
     /// <remarks>
     /// Returns the team's name, sport information, and the list of available skills and positions for that sport.
@@ -71,6 +87,8 @@ public record GetTeamResponse(
     string Name,
     string SportName,
     SportResponse Sport);
+
+public record ResolveTeamResponse(Guid TeamId, string Name);
 
 public record SportResponse(
     string Name,

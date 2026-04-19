@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import type { BalanceMatrixResponse } from '../../api/index'
+import type { BalanceMatrixDto } from '../../api/index'
 
 interface Props {
-  data: BalanceMatrixResponse
+  data: BalanceMatrixDto
 }
 
 export function BalanceMatrix({ data }: Props) {

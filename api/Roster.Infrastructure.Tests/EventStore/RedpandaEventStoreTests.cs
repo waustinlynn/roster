@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using Roster.Domain.Events;
 using Roster.Domain.Exceptions;
 using Roster.Infrastructure.EventStore;
+using Roster.Infrastructure.InMemory;
 using Testcontainers.Redpanda;
 
 [Trait("Category", "Integration")]
@@ -31,7 +32,8 @@ public class RedpandaEventStoreTests : IAsyncLifetime
         var options = new RedpandaOptions { BootstrapServers = bootstrapServers, Topic = topic };
         var store = new RedpandaEventStore(
             Options.Create(options),
-            NullLogger<RedpandaEventStore>.Instance);
+            NullLogger<RedpandaEventStore>.Instance,
+            new InMemoryStore(NullLogger<InMemoryStore>.Instance));
 
         var teamId = Guid.NewGuid();
         await store.AppendAsync([

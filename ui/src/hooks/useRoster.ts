@@ -1,10 +1,10 @@
 import { useQueryClient } from '@tanstack/react-query'
 import {
-  useGetPlayers,
-  useAddPlayer as useAddPlayerMutation,
-  useRatePlayerSkill as useRatePlayerSkillMutation,
-  useDeactivatePlayer as useDeactivatePlayerMutation,
-  getGetPlayersQueryKey,
+  useGetTeamsTeamIdPlayers as useGetPlayers,
+  usePostTeamsTeamIdPlayers as useAddPlayerMutation,
+  usePutTeamsTeamIdPlayersPlayerIdSkillsSkillName as useRatePlayerSkillMutation,
+  useDeleteTeamsTeamIdPlayersPlayerId as useDeactivatePlayerMutation,
+  getGetTeamsTeamIdPlayersQueryKey as getGetPlayersQueryKey,
 } from '../api/index'
 import type { AddPlayerRequest, RateSkillRequest } from '../api/index'
 

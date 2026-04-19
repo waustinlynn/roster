@@ -34,7 +34,7 @@ public static class EventSerializer
         try
         {
             var node = JsonNode.Parse(json);
-            var eventType = node?["eventType"]?.GetValue<string>();
+            var eventType = node?["EventType"]?.GetValue<string>();
 
             return eventType switch
             {

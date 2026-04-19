@@ -1,7 +1,7 @@
-import type { GameDetailResponse } from '../../api/index'
+import type { GameDto } from '../../api/index'
 
 interface Props {
-  game: GameDetailResponse
+  game: GameDto
   onLock: () => void
   locking: boolean
 }

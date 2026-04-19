@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLocalTeam } from '../hooks/useLocalTeam'
 import { useCreateTeam } from '../hooks/useTeam'
-import { getTeam } from '../api/index'
+import { getTeamsMe } from '../api/index'
 import type { CreateTeamRequest } from '../api/index'
 
 export function Landing() {
@@ -10,7 +10,7 @@ export function Landing() {
   const { save } = useLocalTeam()
 
   const [createForm, setCreateForm] = useState<CreateTeamRequest>({ name: '', sportName: 'Softball' })
-  const [secretForm, setSecretForm] = useState({ teamId: '', secret: '' })
+  const [secret, setSecret] = useState('')
   const [newSecret, setNewSecret] = useState<string | null>(null)
   const [createdTeamId, setCreatedTeamId] = useState<string | null>(null)
   const [enterError, setEnterError] = useState<string | null>(null)
@@ -39,15 +39,14 @@ export function Landing() {
     setEnterError(null)
     setEnterLoading(true)
     try {
-      // Temporarily store to let the axios interceptor inject the secret,
-      // then validate against the API before persisting.
-      localStorage.setItem('roster_team', JSON.stringify({ teamId: secretForm.teamId, secret: secretForm.secret }))
-      await getTeam(secretForm.teamId)
-      save(secretForm.teamId, secretForm.secret)
-      navigate(`/teams/${secretForm.teamId}`)
+      // Temporarily write to localStorage so customInstance injects the header
+      localStorage.setItem('roster_team', JSON.stringify({ teamId: '', secret }))
+      const team = await getTeamsMe()
+      save(team.teamId!, secret)
+      navigate(`/teams/${team.teamId}`)
     } catch {
       localStorage.removeItem('roster_team')
-      setEnterError('Invalid team ID or secret. Please check and try again.')
+      setEnterError('Invalid secret. Please check and try again.')
     } finally {
       setEnterLoading(false)
     }
@@ -75,7 +74,7 @@ export function Landing() {
         <div style={{ marginBottom: 10 }}>
           <label>Team Name<br />
             <input
-              value={createForm.name}
+              value={createForm.name ?? ''}
               onChange={e => setCreateForm(f => ({ ...f, name: e.target.value }))}
               required
               maxLength={100}
@@ -86,7 +85,7 @@ export function Landing() {
         <div style={{ marginBottom: 10 }}>
           <label>Sport<br />
             <select
-              value={createForm.sportName}
+              value={createForm.sportName ?? ''}
               onChange={e => setCreateForm(f => ({ ...f, sportName: e.target.value }))}
             >
               <option value="Softball">Softball</option>
@@ -108,22 +107,11 @@ export function Landing() {
       <h2>Return to Your Team</h2>
       <form onSubmit={handleEnterSecret}>
         <div style={{ marginBottom: 10 }}>
-          <label>Team ID<br />
-            <input
-              value={secretForm.teamId}
-              onChange={e => setSecretForm(f => ({ ...f, teamId: e.target.value }))}
-              placeholder="xxxxxxxx-xxxx-..."
-              required
-              style={{ width: '100%', padding: '6px 8px', boxSizing: 'border-box' }}
-            />
-          </label>
-        </div>
-        <div style={{ marginBottom: 10 }}>
           <label>Access Secret<br />
             <input
               type="password"
-              value={secretForm.secret}
-              onChange={e => setSecretForm(f => ({ ...f, secret: e.target.value }))}
+              value={secret}
+              onChange={e => setSecret(e.target.value)}
               required
               style={{ width: '100%', padding: '6px 8px', boxSizing: 'border-box' }}
             />

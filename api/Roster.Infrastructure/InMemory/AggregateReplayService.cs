@@ -63,11 +63,7 @@ public class AggregateReplayService : BackgroundService
                 .Select(p => new TopicPartition(_options.Topic, p.PartitionId))
                 .ToList();
 
-            consumer.Assign(partitions);
-
-            // Seek all to beginning
-            foreach (var tp in partitions)
-                consumer.Seek(new TopicPartitionOffset(tp, Offset.Beginning));
+            consumer.Assign(partitions.Select(tp => new TopicPartitionOffset(tp, Offset.Beginning)));
 
             // Sample high watermarks now — we replay up to these offsets
             var watermarks = partitions.ToDictionary(

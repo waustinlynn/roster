@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react'
-import type { PlayerResponse, FieldingAssignment } from '../../api/index'
+import { useState } from 'react'
+import type { PlayerResponse, FieldingAssignmentDto } from '../../api/index'
 
 interface Props {
   inningCount: number
   players: PlayerResponse[]          // active, non-absent
   absentPlayerIds: string[]
   positions: string[]                // sport positions (no Bench — we add it)
-  savedAssignments: Record<string, FieldingAssignment[]>  // "1" → assignments
+  savedAssignments: Record<string, FieldingAssignmentDto[]>  // "1" → assignments
   isLocked: boolean
-  onSaveInning: (inningNumber: number, assignments: FieldingAssignment[]) => Promise<void>
+  onSaveInning: (inningNumber: number, assignments: FieldingAssignmentDto[]) => Promise<void>
 }
 
 const ALL_POSITIONS = (positions: string[]) => [...positions, 'Bench']
@@ -67,14 +67,14 @@ interface PanelProps {
   inningNumber: number
   players: PlayerResponse[]
   allPositions: string[]
-  saved: FieldingAssignment[]
-  prevSaved: FieldingAssignment[]
+  saved: FieldingAssignmentDto[]
+  prevSaved: FieldingAssignmentDto[]
   isLocked: boolean
-  onSave: (inningNumber: number, assignments: FieldingAssignment[]) => Promise<void>
+  onSave: (inningNumber: number, assignments: FieldingAssignmentDto[]) => Promise<void>
 }
 
 function InningPanel({ inningNumber, players, allPositions, saved, prevSaved, isLocked, onSave }: PanelProps) {
-  const buildInitial = (source: FieldingAssignment[]) => {
+  const buildInitial = (source: FieldingAssignmentDto[]) => {
     const map: Record<string, string> = {}
     for (const p of players) {
       const saved = source.find(a => a.playerId === p.playerId)
@@ -107,7 +107,7 @@ function InningPanel({ inningNumber, players, allPositions, saved, prevSaved, is
     setSaving(true)
     setError(null)
     try {
-      const list: FieldingAssignment[] = players.map(p => ({
+      const list: FieldingAssignmentDto[] = players.map(p => ({
         playerId: p.playerId!,
         position: assignments[p.playerId!] ?? 'Bench',
       }))

@@ -12,6 +12,7 @@ public class InMemoryStore : ITeamRepository, IInMemoryStore
     private readonly ConcurrentDictionary<Guid, TeamAggregate> _teams = new();
     private readonly ConcurrentDictionary<Guid, GameAggregate> _games = new();
     private readonly ConcurrentDictionary<string, Guid> _secrets = new();
+    private readonly ConcurrentDictionary<Guid, bool> _appliedEventIds = new();
     private readonly ILogger<InMemoryStore> _logger;
 
     public InMemoryStore(ILogger<InMemoryStore> logger)
@@ -40,6 +41,8 @@ public class InMemoryStore : ITeamRepository, IInMemoryStore
     // Route events to correct aggregate
     public void Apply(DomainEvent @event)
     {
+        if (!_appliedEventIds.TryAdd(@event.EventId, true))
+            return;
         switch (@event)
         {
             case TeamCreated e:

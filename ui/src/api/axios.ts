@@ -1,30 +1,32 @@
-import axios from 'axios'
+import axios, { type AxiosRequestConfig } from 'axios'
 
 const instance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5001',
+  baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5242',
   headers: {
     'Content-Type': 'application/json',
   },
 })
 
-// Inject X-Team-Secret header from localStorage on every request
-instance.interceptors.request.use((config) => {
+function getTeamSecret(): string | null {
   try {
     const raw = localStorage.getItem('roster_team')
     if (raw) {
       const { secret } = JSON.parse(raw)
-      if (secret) config.headers['X-Team-Secret'] = secret
+      return secret ?? null
     }
-  } catch {
-    // ignore
-  }
-  return config
-})
+  } catch { /* ignore */ }
+  return null
+}
 
 export const customInstance = async <T>(
-  config: Parameters<typeof instance>[0]
+  config: AxiosRequestConfig
 ): Promise<T> => {
-  const { data } = await instance(config)
+  const secret = getTeamSecret()
+  const headers = secret
+    ? { ...config.headers as object, 'X-Team-Secret': secret }
+    : config.headers
+
+  const { data } = await instance({ ...config, headers })
   return data
 }
 

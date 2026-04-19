@@ -31,7 +31,8 @@ public class AggregateReplayServiceTests : IAsyncLifetime
         var options = new RedpandaOptions { BootstrapServers = bootstrapServers, Topic = topic };
         var eventStore = new RedpandaEventStore(
             Options.Create(options),
-            NullLogger<RedpandaEventStore>.Instance);
+            NullLogger<RedpandaEventStore>.Instance,
+            new InMemoryStore(NullLogger<InMemoryStore>.Instance));
 
         var teamId = Guid.NewGuid();
         await eventStore.AppendAsync([

@@ -21,6 +21,8 @@ services:
       - "9092:9092"
       - "8081:8081"
       - "8082:8082"
+    volumes:
+      - redpanda-data:/var/lib/redpanda/data
     healthcheck:
       test: ["CMD-SHELL", "rpk cluster health | grep -E 'Healthy:.+true' || exit 1"]
       interval: 15s
@@ -55,3 +57,6 @@ services:
     environment:
       - KAFKA_BROKERS=redpanda:29092
     restart: unless-stopped
+
+volumes:
+  redpanda-data:

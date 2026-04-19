@@ -16,7 +16,7 @@ export function RosterPage() {
   const players = rosterQuery.data ?? []
 
   const handleAdd = async (name: string) => {
-    await addPlayer.mutateAsync({ data: { name } })
+    await addPlayer.mutateAsync({ teamId: teamId!, data: { name } })
   }
 
   const handleRate = async (playerId: string, skillName: string, rating: number) => {

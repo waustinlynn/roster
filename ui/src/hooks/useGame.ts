@@ -1,16 +1,16 @@
 import { useQueryClient } from '@tanstack/react-query'
 import {
-  useGetGames,
-  useGetGame,
-  useCreateGame as useCreateGameMutation,
-  useMarkPlayerAbsent as useMarkPlayerAbsentMutation,
-  useRevokePlayerAbsence as useRevokePlayerAbsenceMutation,
-  useSetBattingOrder as useSetBattingOrderMutation,
-  useAssignInningFielding as useAssignInningFieldingMutation,
-  useLockGame as useLockGameMutation,
-  getGetGamesQueryKey,
-  getGetGameQueryKey,
-  getGetBalanceQueryKey,
+  useGetTeamsTeamIdGames as useGetGames,
+  useGetTeamsTeamIdGamesGameId as useGetGame,
+  usePostTeamsTeamIdGames as useCreateGameMutation,
+  usePostTeamsTeamIdGamesGameIdAbsent as useMarkPlayerAbsentMutation,
+  useDeleteTeamsTeamIdGamesGameIdAbsentPlayerId as useRevokePlayerAbsenceMutation,
+  usePutTeamsTeamIdGamesGameIdBattingOrder as useSetBattingOrderMutation,
+  usePutTeamsTeamIdGamesGameIdInningsInningNumberFielding as useAssignInningFieldingMutation,
+  usePostTeamsTeamIdGamesGameIdLock as useLockGameMutation,
+  getGetTeamsTeamIdGamesQueryKey as getGetGamesQueryKey,
+  getGetTeamsTeamIdGamesGameIdQueryKey as getGetGameQueryKey,
+  getGetTeamsTeamIdBalanceQueryKey as getGetBalanceQueryKey,
 } from '../api/index'
 
 export function useGetGamesList(teamId: string) {

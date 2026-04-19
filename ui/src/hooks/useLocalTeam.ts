@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 const STORAGE_KEY = 'roster_team'
 
 interface LocalTeamData {
@@ -5,22 +7,27 @@ interface LocalTeamData {
   secret: string
 }
 
+function readStorage(): LocalTeamData | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    return raw ? (JSON.parse(raw) as LocalTeamData) : null
+  } catch {
+    return null
+  }
+}
+
 export function useLocalTeam() {
-  const data = (() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      return raw ? (JSON.parse(raw) as LocalTeamData) : null
-    } catch {
-      return null
-    }
-  })()
+  const [data, setData] = useState<LocalTeamData | null>(readStorage)
 
   const save = (teamId: string, secret: string) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ teamId, secret }))
+    const d = { teamId, secret }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(d))
+    setData(d)
   }
 
   const clear = () => {
     localStorage.removeItem(STORAGE_KEY)
+    setData(null)
   }
 
   return {

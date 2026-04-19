@@ -26,7 +26,7 @@ export function TeamDashboard() {
   const handleCreateGame = (e: React.FormEvent) => {
     e.preventDefault()
     setCreateError(null)
-    createGame.mutate({ data: gameForm }, {
+    createGame.mutate({ teamId: teamId!, data: gameForm }, {
       onSuccess: (game) => {
         setShowCreate(false)
         setGameForm({ date: '', inningCount: 6 })
@@ -78,7 +78,7 @@ export function TeamDashboard() {
               Date<br />
               <input
                 type="date"
-                value={gameForm.date}
+                value={gameForm.date ?? ''}
                 onChange={e => setGameForm(f => ({ ...f, date: e.target.value }))}
                 required
               />

@@ -12,7 +12,7 @@ import {
 import { GameHeader } from '../components/game/GameHeader'
 import { BattingOrderList } from '../components/game/BattingOrderList'
 import { InningFieldingGrid } from '../components/game/InningFieldingGrid'
-import type { FieldingAssignment } from '../api/index'
+import type { FieldingAssignmentDto } from '../api/index'
 
 export function GamePage() {
   const { teamId, gameId } = useParams<{ teamId: string; gameId: string }>()
@@ -55,7 +55,7 @@ export function GamePage() {
     await setBattingOrder.mutateAsync({ teamId: teamId!, gameId: gameId!, data: { orderedPlayerIds } })
   }
 
-  const handleAssignInning = async (inningNumber: number, assignments: FieldingAssignment[]) => {
+  const handleAssignInning = async (inningNumber: number, assignments: FieldingAssignmentDto[]) => {
     await assignFielding.mutateAsync({ teamId: teamId!, gameId: gameId!, inningNumber, data: { assignments } })
   }
 

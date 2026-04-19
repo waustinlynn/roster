@@ -6,19 +6,23 @@ using Microsoft.Extensions.Options;
 using Roster.Domain.Events;
 using Roster.Domain.Exceptions;
 using Roster.Domain.Interfaces;
+using Roster.Infrastructure.InMemory;
 
 public class RedpandaEventStore : IEventStore, IDisposable
 {
     private readonly IProducer<string, string> _producer;
     private readonly RedpandaOptions _options;
     private readonly ILogger<RedpandaEventStore> _logger;
+    private readonly InMemoryStore _store;
 
     public RedpandaEventStore(
         IOptions<RedpandaOptions> options,
-        ILogger<RedpandaEventStore> logger)
+        ILogger<RedpandaEventStore> logger,
+        InMemoryStore store)
     {
         _options = options.Value;
         _logger = logger;
+        _store = store;
 
         var config = new ProducerConfig
         {
@@ -54,6 +58,7 @@ public class RedpandaEventStore : IEventStore, IDisposable
                 try
                 {
                     await _producer.ProduceAsync(_options.Topic, message, ct);
+                    _store.Apply(@event);
                     _logger.LogDebug(
                         "Published {EventType} for team {TeamId} (attempt {Attempt})",
                         @event.EventType, @event.TeamId, attempt);

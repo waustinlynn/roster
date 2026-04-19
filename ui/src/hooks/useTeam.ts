@@ -1,8 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query'
 import {
-  useCreateTeam as useCreateTeamMutation,
-  useGetTeam as useGetTeamQuery,
-  getGetTeamQueryKey,
+  usePostTeams as useCreateTeamMutation,
+  useGetTeamsTeamId as useGetTeamQuery,
+  getGetTeamsTeamIdQueryKey as getGetTeamQueryKey,
 } from '../api/index'
 import type { CreateTeamRequest } from '../api/index'
 
