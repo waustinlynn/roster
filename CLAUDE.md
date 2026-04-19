@@ -2,6 +2,10 @@
 
 Auto-generated from all feature plans. Last updated: 2026-03-21
 
+## Critical Rules
+
+- **Never wipe Redpanda data** (`docker compose down -v`, deleting volumes, or dropping the topic). Bad events must be fixed by making aggregates tolerate or skip them — not by destroying the event log.
+
 ## Active Technologies
 
 - C# / .NET 10 (API), TypeScript / React + Vite latest (UI) (001-roster-management)
@@ -78,6 +82,7 @@ Committing implementation before the corresponding test exists is a constitution
 
 ### OpenAPI-First
 - OpenAPI auto-generated from code annotations (Swashbuckle); no manually maintained spec files.
+- **Never edit `openapi.json` by hand.** Regenerate it by running the API and curling the swagger endpoint: `curl http://localhost:5001/swagger/v1/swagger.json > openapi.json` (or the port shown in launchSettings.json).
 - Every endpoint must have `[ProducesResponseType]` for all relevant status codes.
 - UI client must be generated from the spec via `npm run generate-client`. Hand-written fetch wrappers against the Roster API are prohibited.
 - Bare `fetch`/`axios` calls to the API outside of TanStack Query hooks are prohibited.

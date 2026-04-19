@@ -4,6 +4,7 @@ import { useLocalTeam } from '../hooks/useLocalTeam'
 import { useGetTeam } from '../hooks/useTeam'
 import { useGetGamesList, useCreateGame } from '../hooks/useGame'
 import type { CreateGameRequest } from '../api/index'
+import { getTeamsTeamIdGamesGameId, putTeamsTeamIdGamesGameIdLineup } from '../api/index'
 
 export function TeamDashboard() {
   const { teamId } = useParams<{ teamId: string }>()
@@ -16,6 +17,7 @@ export function TeamDashboard() {
 
   const [showCreate, setShowCreate] = useState(false)
   const [gameForm, setGameForm] = useState<CreateGameRequest>({ date: '', inningCount: 6 })
+  const [copyFromGameId, setCopyFromGameId] = useState('')
   const [createError, setCreateError] = useState<string | null>(null)
 
   const handleSignOut = () => {
@@ -23,17 +25,40 @@ export function TeamDashboard() {
     navigate('/')
   }
 
-  const handleCreateGame = (e: React.FormEvent) => {
+  const handleCreateGame = async (e: React.FormEvent) => {
     e.preventDefault()
     setCreateError(null)
-    createGame.mutate({ teamId: teamId!, data: gameForm }, {
-      onSuccess: (game) => {
-        setShowCreate(false)
-        setGameForm({ date: '', inningCount: 6 })
-        navigate(`/teams/${teamId}/games/${game.gameId}`)
-      },
-      onError: () => setCreateError('Failed to create game'),
-    })
+    try {
+      const game = await createGame.mutateAsync({ teamId: teamId!, data: gameForm })
+
+      if (copyFromGameId && game.gameId) {
+        const source = await getTeamsTeamIdGamesGameId(teamId!, copyFromGameId)
+        const targetInnings = gameForm.inningCount ?? 6
+        const inningAssignments: Record<string, { playerId?: string; position?: string | null }[]> = {}
+        if (source.inningAssignments) {
+          for (let i = 1; i <= targetInnings; i++) {
+            const key = String(i)
+            if (source.inningAssignments[key]) {
+              inningAssignments[key] = source.inningAssignments[key].map(s => ({
+                playerId: s.playerId,
+                position: s.position,
+              }))
+            }
+          }
+        }
+        await putTeamsTeamIdGamesGameIdLineup(teamId!, game.gameId, {
+          battingOrder: source.battingOrder ?? null,
+          inningAssignments: Object.keys(inningAssignments).length > 0 ? inningAssignments : null,
+        })
+      }
+
+      setShowCreate(false)
+      setGameForm({ date: '', inningCount: 6 })
+      setCopyFromGameId('')
+      navigate(`/teams/${teamId}/games/${game.gameId}`)
+    } catch {
+      setCreateError('Failed to create game')
+    }
   }
 
   const games = gamesQuery.data ?? []
@@ -104,6 +129,19 @@ export function TeamDashboard() {
                 style={{ width: 60 }}
               />
             </label>
+            {games.length > 0 && (
+              <label style={{ fontSize: 13 }}>
+                Copy lineup from (optional)<br />
+                <select value={copyFromGameId} onChange={e => setCopyFromGameId(e.target.value)}>
+                  <option value="">None</option>
+                  {[...games].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '')).map(g => (
+                    <option key={g.gameId} value={g.gameId}>
+                      {g.date}{g.opponent ? ` vs ${g.opponent}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <button type="submit" disabled={createGame.isPending}>
               {createGame.isPending ? 'Creating…' : 'Create Game'}
             </button>

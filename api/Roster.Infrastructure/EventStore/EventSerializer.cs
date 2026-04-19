@@ -25,6 +25,9 @@ public static class EventSerializer
             BattingOrderSet e => JsonSerializer.Serialize(e, Options),
             InningFieldingAssigned e => JsonSerializer.Serialize(e, Options),
             GameLocked e => JsonSerializer.Serialize(e, Options),
+            PlayerRenamed e => JsonSerializer.Serialize(e, Options),
+            InningScoreRecorded e => JsonSerializer.Serialize(e, Options),
+            GameScoresRecorded e => JsonSerializer.Serialize(e, Options),
             _ => throw new InvalidOperationException($"Unknown event type: {@event.GetType().Name}")
         };
     }
@@ -48,6 +51,9 @@ public static class EventSerializer
                 nameof(BattingOrderSet) => JsonSerializer.Deserialize<BattingOrderSet>(json, Options),
                 nameof(InningFieldingAssigned) => JsonSerializer.Deserialize<InningFieldingAssigned>(json, Options),
                 nameof(GameLocked) => JsonSerializer.Deserialize<GameLocked>(json, Options),
+                nameof(PlayerRenamed) => JsonSerializer.Deserialize<PlayerRenamed>(json, Options),
+                nameof(InningScoreRecorded) => JsonSerializer.Deserialize<InningScoreRecorded>(json, Options),
+                nameof(GameScoresRecorded) => JsonSerializer.Deserialize<GameScoresRecorded>(json, Options),
                 _ => null
             };
         }

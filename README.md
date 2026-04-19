@@ -88,19 +88,27 @@ npm run dev
 
 The UI starts on `http://localhost:5173` and proxies API calls to `localhost:5001`.
 
-If the API contracts changed, regenerate the client before starting:
+### Regenerating the OpenAPI spec and UI client
+
+`openapi.json` is **auto-generated from Swashbuckle** — never edit it by hand. Whenever the
+API contracts change (new endpoints, request/response types), regenerate it and then
+regenerate the UI client:
 
 ```bash
-# From the repo root — requires the openapi.json at the root to be up to date
-cd ui && npx orval --config ./orval.config.ts
+# 1. Start Redpanda and the API (if not already running)
+docker compose up -d redpanda
+dotnet run --project api/Roster.Api   # note the port logged to console
+
+# 2. Export the fresh spec (use whatever port the API reports)
+curl http://localhost:<port>/swagger/v1/swagger.json > openapi.json
+
+# 3. Regenerate the UI client
+npm run generate-client --prefix ui
 ```
 
-Or export a fresh spec from the running API first:
-
-```bash
-curl http://localhost:5001/swagger/v1/swagger.json > openapi.json
-cd ui && npx orval --config ./orval.config.ts
-```
+The orval config (`ui/orval.config.ts`) reads `openapi.json` from the repo root. If the
+file is stale or missing it falls back to `http://localhost:5001/swagger/v1/swagger.json`
+(the port in `launchSettings.json` may differ — check the startup logs).
 
 ---
 

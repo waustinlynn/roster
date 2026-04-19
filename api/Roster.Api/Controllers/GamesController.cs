@@ -8,6 +8,9 @@ using Roster.Application.Commands.LockGame;
 using Roster.Application.Commands.MarkPlayerAbsent;
 using Roster.Application.Commands.RevokePlayerAbsence;
 using Roster.Application.Commands.SetBattingOrder;
+using Roster.Application.Commands.RecordGameScores;
+using Roster.Application.Commands.RecordInningScore;
+using Roster.Application.Commands.UpdateGameLineup;
 using Roster.Application.Queries.GetGame;
 
 [Route("teams/{teamId:guid}/games")]
@@ -141,6 +144,72 @@ public class GamesController : BaseController
         return NoContent();
     }
 
+    /// <summary>Set batting order and all inning fielding assignments in one operation.</summary>
+    /// <remarks>
+    /// Atomically replaces the batting order and all provided inning fielding assignments.
+    /// Inning keys not present in the request are left unchanged.
+    /// Cannot be done on locked games.
+    /// Requires X-Team-Secret header authentication.
+    /// </remarks>
+    [HttpPut("{gameId:guid}/lineup")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UpdateLineup(Guid teamId, Guid gameId, [FromBody] UpdateLineupRequest request, CancellationToken ct)
+    {
+        if (ResolvedTeamId != teamId) return Forbid();
+        var inningAssignments = request.InningAssignments
+            .ToDictionary(
+                kvp => int.Parse(kvp.Key),
+                kvp => (IReadOnlyList<FieldingAssignmentDto>)kvp.Value
+                    .Select(s => new FieldingAssignmentDto(s.PlayerId, s.Position))
+                    .ToList()
+            );
+        await _mediator.Send(new UpdateGameLineupCommand(teamId, gameId, request.BattingOrder, inningAssignments), ct);
+        return NoContent();
+    }
+
+    /// <summary>Record scores for all innings of a game in one operation.</summary>
+    /// <remarks>
+    /// Replaces the entire score record for the game with the provided inning scores.
+    /// All innings should be included; any inning not in the payload retains its previous value.
+    /// Can be called on both locked and unlocked games.
+    /// Requires X-Team-Secret header authentication.
+    /// </remarks>
+    [HttpPut("{gameId:guid}/scores")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RecordGameScores(Guid teamId, Guid gameId, [FromBody] RecordGameScoresRequest request, CancellationToken ct)
+    {
+        if (ResolvedTeamId != teamId) return Forbid();
+        var inningScores = request.InningScores.ToDictionary(
+            kvp => int.Parse(kvp.Key),
+            kvp => new InningScoreEntry(kvp.Value.HomeScore, kvp.Value.AwayScore));
+        await _mediator.Send(new RecordGameScoresCommand(teamId, gameId, inningScores), ct);
+        return NoContent();
+    }
+
+    /// <summary>Record the score for a specific inning.</summary>
+    /// <remarks>
+    /// Sets or updates the home and away runs scored in a specific inning.
+    /// Can be called on both locked and unlocked games.
+    /// Requires X-Team-Secret header authentication.
+    /// </remarks>
+    [HttpPut("{gameId:guid}/innings/{inningNumber:int}/score")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RecordScore(Guid teamId, Guid gameId, int inningNumber, [FromBody] RecordScoreRequest request, CancellationToken ct)
+    {
+        if (ResolvedTeamId != teamId) return Forbid();
+        await _mediator.Send(new RecordInningScoreCommand(teamId, gameId, inningNumber, request.HomeScore, request.AwayScore), ct);
+        return NoContent();
+    }
+
     /// <summary>Lock the game as final.</summary>
     /// <remarks>
     /// Permanently marks this game as complete and locks it from further editing. This action cannot be undone.
@@ -164,3 +233,9 @@ public record MarkAbsentRequest(Guid PlayerId);
 public record SetBattingOrderRequest(IReadOnlyList<Guid> OrderedPlayerIds);
 public record AssignFieldingRequest(IReadOnlyList<FieldingSlot> Assignments);
 public record FieldingSlot(Guid PlayerId, string Position);
+public record UpdateLineupRequest(
+    IReadOnlyList<Guid> BattingOrder,
+    Dictionary<string, IReadOnlyList<FieldingSlot>> InningAssignments
+);
+public record RecordScoreRequest(int HomeScore, int AwayScore);
+public record RecordGameScoresRequest(Dictionary<string, RecordScoreRequest> InningScores);

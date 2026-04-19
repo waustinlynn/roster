@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom'
 import { useGetTeam } from '../hooks/useTeam'
-import { useGetRoster, useAddPlayer, useRateSkill, useDeactivatePlayer } from '../hooks/useRoster'
+import { useGetRoster, useAddPlayer, useRateSkill, useDeactivatePlayer, useRenamePlayer } from '../hooks/useRoster'
 import { PlayerList } from '../components/roster/PlayerList'
 import { AddPlayerForm } from '../components/roster/AddPlayerForm'
 
@@ -11,6 +11,7 @@ export function RosterPage() {
   const addPlayer = useAddPlayer(teamId!)
   const rateSkill = useRateSkill(teamId!)
   const deactivatePlayer = useDeactivatePlayer(teamId!)
+  const renamePlayer = useRenamePlayer(teamId!)
 
   const skills = teamQuery.data?.sport?.skills ?? []
   const players = rosterQuery.data ?? []
@@ -21,6 +22,10 @@ export function RosterPage() {
 
   const handleRate = async (playerId: string, skillName: string, rating: number) => {
     await rateSkill.mutateAsync({ teamId: teamId!, playerId, skillName, data: { rating } })
+  }
+
+  const handleRename = async (playerId: string, name: string) => {
+    await renamePlayer.mutateAsync({ teamId: teamId!, playerId, data: { name } })
   }
 
   const handleDeactivate = async (playerId: string) => {
@@ -47,6 +52,7 @@ export function RosterPage() {
             players={players}
             skills={skills}
             onRate={handleRate}
+            onRename={handleRename}
             onDeactivate={handleDeactivate}
           />
         </>

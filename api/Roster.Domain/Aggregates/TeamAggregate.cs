@@ -24,6 +24,7 @@ public class TeamAggregate
             case PlayerAdded e: Apply(e); break;
             case PlayerSkillRated e: Apply(e); break;
             case PlayerDeactivated e: Apply(e); break;
+            case PlayerRenamed e: Apply(e); break;
         }
         Version++;
     }
@@ -64,6 +65,13 @@ public class TeamAggregate
         if (!_players.TryGetValue(e.PlayerId, out var player))
             throw new DomainException($"Player {e.PlayerId} not found.");
         player.IsActive = false;
+    }
+
+    private void Apply(PlayerRenamed e)
+    {
+        if (!_players.TryGetValue(e.PlayerId, out var player))
+            throw new DomainException($"Player {e.PlayerId} not found.");
+        player.Name = e.NewName;
     }
 }
 

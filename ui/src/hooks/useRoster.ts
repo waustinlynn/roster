@@ -4,6 +4,7 @@ import {
   usePostTeamsTeamIdPlayers as useAddPlayerMutation,
   usePutTeamsTeamIdPlayersPlayerIdSkillsSkillName as useRatePlayerSkillMutation,
   useDeleteTeamsTeamIdPlayersPlayerId as useDeactivatePlayerMutation,
+  usePatchTeamsTeamIdPlayersPlayerId as useRenamePlayerMutation,
   getGetTeamsTeamIdPlayersQueryKey as getGetPlayersQueryKey,
 } from '../api/index'
 import type { AddPlayerRequest, RateSkillRequest } from '../api/index'
@@ -33,6 +34,15 @@ export function useRateSkill(teamId: string) {
 export function useDeactivatePlayer(teamId: string) {
   const qc = useQueryClient()
   return useDeactivatePlayerMutation({
+    mutation: {
+      onSuccess: () => qc.invalidateQueries({ queryKey: getGetPlayersQueryKey(teamId) }),
+    },
+  })
+}
+
+export function useRenamePlayer(teamId: string) {
+  const qc = useQueryClient()
+  return useRenamePlayerMutation({
     mutation: {
       onSuccess: () => qc.invalidateQueries({ queryKey: getGetPlayersQueryKey(teamId) }),
     },

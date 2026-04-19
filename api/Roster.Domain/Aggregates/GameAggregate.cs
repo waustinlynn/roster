@@ -13,6 +13,7 @@ public class GameAggregate
     public List<Guid> AbsentPlayerIds { get; private set; } = new();
     public List<Guid> BattingOrder { get; private set; } = new();
     public Dictionary<int, List<FieldingAssignment>> InningAssignments { get; private set; } = new();
+    public Dictionary<int, InningScore> InningScores { get; private set; } = new();
 
     public void Apply(DomainEvent @event)
     {
@@ -24,6 +25,8 @@ public class GameAggregate
             case BattingOrderSet e: Apply(e); break;
             case InningFieldingAssigned e: Apply(e); break;
             case GameLocked e: Apply(e); break;
+            case InningScoreRecorded e: Apply(e); break;
+            case GameScoresRecorded e: Apply(e); break;
         }
     }
 
@@ -77,6 +80,21 @@ public class GameAggregate
 
     private void Apply(GameLocked e) => IsLocked = true;
 
+    private void Apply(GameScoresRecorded e)
+    {
+        foreach (var (inning, score) in e.InningScores)
+            InningScores[inning] = new InningScore(score.HomeScore, score.AwayScore);
+    }
+
+    private void Apply(InningScoreRecorded e)
+    {
+        if (e.InningNumber < 1 || e.InningNumber > InningCount)
+            throw new DomainException($"Inning number must be between 1 and {InningCount}.");
+        if (e.HomeScore < 0 || e.AwayScore < 0)
+            throw new DomainException("Scores cannot be negative.");
+        InningScores[e.InningNumber] = new InningScore(e.HomeScore, e.AwayScore);
+    }
+
     private void GuardLocked()
     {
         if (IsLocked)
@@ -85,3 +103,4 @@ public class GameAggregate
 }
 
 public record FieldingAssignment(Guid PlayerId, string Position);
+public record InningScore(int HomeScore, int AwayScore);

@@ -29,7 +29,10 @@ public class GetGameQueryHandler :
                 kvp => kvp.Key,
                 kvp => (IReadOnlyList<FieldingAssignmentDto>)kvp.Value
                     .Select(a => new FieldingAssignmentDto(a.PlayerId, a.Position))
-                    .ToList()));
+                    .ToList()),
+            game.InningScores.ToDictionary(
+                kvp => kvp.Key,
+                kvp => new InningScoreDto(kvp.Value.HomeScore, kvp.Value.AwayScore)));
 
         return Task.FromResult<GameDto?>(dto);
     }

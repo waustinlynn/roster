@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Roster.Application.Commands.AddPlayer;
 using Roster.Application.Commands.DeactivatePlayer;
 using Roster.Application.Commands.RatePlayerSkill;
+using Roster.Application.Commands.RenamePlayer;
 using Roster.Application.Queries.GetRoster;
 
 [Route("teams/{teamId:guid}/players")]
@@ -62,6 +63,23 @@ public class PlayersController : BaseController
         return NoContent();
     }
 
+    /// <summary>Rename a player.</summary>
+    /// <remarks>
+    /// Updates the display name for a player. Name must be 1–100 characters.
+    /// Requires X-Team-Secret header authentication.
+    /// </remarks>
+    [HttpPatch("{playerId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RenamePlayer(Guid teamId, Guid playerId, [FromBody] RenamePlayerRequest request, CancellationToken ct)
+    {
+        if (ResolvedTeamId != teamId) return Forbid();
+        await _mediator.Send(new RenamePlayerCommand(teamId, playerId, request.Name), ct);
+        return NoContent();
+    }
+
     /// <summary>Deactivate a player and remove them from future games.</summary>
     /// <remarks>
     /// Marks a player as inactive. All historical game data and assignments are preserved.
@@ -82,5 +100,6 @@ public class PlayersController : BaseController
 }
 
 public record AddPlayerRequest(string Name);
+public record RenamePlayerRequest(string Name);
 public record RateSkillRequest(int Rating);
 public record PlayerResponse(Guid PlayerId, string Name, bool IsActive, Dictionary<string, int> Skills);

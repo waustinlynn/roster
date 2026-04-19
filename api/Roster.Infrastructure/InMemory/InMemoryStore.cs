@@ -52,7 +52,7 @@ public class InMemoryStore : ITeamRepository, IInMemoryStore
                 _logger.LogDebug("Applied {EventType} for team {TeamId}", e.EventType, e.TeamId);
                 break;
 
-            case PlayerAdded or PlayerSkillRated or PlayerDeactivated:
+            case PlayerAdded or PlayerSkillRated or PlayerDeactivated or PlayerRenamed:
                 if (_teams.TryGetValue(@event.TeamId, out var t))
                     t.Apply(@event);
                 break;
@@ -64,7 +64,7 @@ public class InMemoryStore : ITeamRepository, IInMemoryStore
                 break;
 
             case PlayerMarkedAbsent or PlayerAbsenceRevoked or BattingOrderSet
-                 or InningFieldingAssigned or GameLocked:
+                 or InningFieldingAssigned or GameLocked or InningScoreRecorded or GameScoresRecorded:
                 var gameId = @event switch
                 {
                     PlayerMarkedAbsent e => e.GameId,
@@ -72,6 +72,8 @@ public class InMemoryStore : ITeamRepository, IInMemoryStore
                     BattingOrderSet e => e.GameId,
                     InningFieldingAssigned e => e.GameId,
                     GameLocked e => e.GameId,
+                    InningScoreRecorded e => e.GameId,
+                    GameScoresRecorded e => e.GameId,
                     _ => Guid.Empty
                 };
                 if (gameId != Guid.Empty && _games.TryGetValue(gameId, out var g))

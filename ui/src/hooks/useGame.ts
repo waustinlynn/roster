@@ -7,6 +7,9 @@ import {
   useDeleteTeamsTeamIdGamesGameIdAbsentPlayerId as useRevokePlayerAbsenceMutation,
   usePutTeamsTeamIdGamesGameIdBattingOrder as useSetBattingOrderMutation,
   usePutTeamsTeamIdGamesGameIdInningsInningNumberFielding as useAssignInningFieldingMutation,
+  usePutTeamsTeamIdGamesGameIdLineup as useUpdateGameLineupMutation,
+  usePutTeamsTeamIdGamesGameIdInningsInningNumberScore as useRecordInningScoreMutation,
+  usePutTeamsTeamIdGamesGameIdScores as useRecordGameScoresMutation,
   usePostTeamsTeamIdGamesGameIdLock as useLockGameMutation,
   getGetTeamsTeamIdGamesQueryKey as getGetGamesQueryKey,
   getGetTeamsTeamIdGamesGameIdQueryKey as getGetGameQueryKey,
@@ -65,6 +68,36 @@ export function useAssignInningFielding(teamId: string, gameId: string) {
         qc.invalidateQueries({ queryKey: getGetGameQueryKey(teamId, gameId) })
         qc.invalidateQueries({ queryKey: getGetBalanceQueryKey(teamId) })
       },
+    },
+  })
+}
+
+export function useUpdateGameLineup(teamId: string, gameId: string) {
+  const qc = useQueryClient()
+  return useUpdateGameLineupMutation({
+    mutation: {
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: getGetGameQueryKey(teamId, gameId) })
+        qc.invalidateQueries({ queryKey: getGetBalanceQueryKey(teamId) })
+      },
+    },
+  })
+}
+
+export function useRecordGameScores(teamId: string, gameId: string) {
+  const qc = useQueryClient()
+  return useRecordGameScoresMutation({
+    mutation: {
+      onSuccess: () => qc.invalidateQueries({ queryKey: getGetGameQueryKey(teamId, gameId) }),
+    },
+  })
+}
+
+export function useRecordInningScore(teamId: string, gameId: string) {
+  const qc = useQueryClient()
+  return useRecordInningScoreMutation({
+    mutation: {
+      onSuccess: () => qc.invalidateQueries({ queryKey: getGetGameQueryKey(teamId, gameId) }),
     },
   })
 }
