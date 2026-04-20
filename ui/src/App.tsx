@@ -4,6 +4,7 @@ import { TeamDashboard } from './pages/TeamDashboard'
 import { RosterPage } from './pages/RosterPage'
 import { GamePage } from './pages/GamePage'
 import { BalancePage } from './pages/BalancePage'
+import { AppLayout } from './layout/AppLayout'
 import { useLocalTeam } from './hooks/useLocalTeam'
 
 function App() {
@@ -14,10 +15,12 @@ function App() {
       <Route path="/" element={
         teamId && secret ? <Navigate to={`/teams/${teamId}`} replace /> : <Landing />
       } />
-      <Route path="/teams/:teamId" element={<TeamDashboard />} />
-      <Route path="/teams/:teamId/roster" element={<RosterPage />} />
-      <Route path="/teams/:teamId/games/:gameId" element={<GamePage />} />
-      <Route path="/teams/:teamId/balance" element={<BalancePage />} />
+      <Route element={<AppLayout />}>
+        <Route path="/teams/:teamId" element={<TeamDashboard />} />
+        <Route path="/teams/:teamId/roster" element={<RosterPage />} />
+        <Route path="/teams/:teamId/games/:gameId" element={<GamePage />} />
+        <Route path="/teams/:teamId/balance" element={<BalancePage />} />
+      </Route>
     </Routes>
   )
 }

@@ -1,5 +1,18 @@
 import { useState } from 'react'
 import type { BalanceMatrixDto } from '../../api/index'
+import Box from '@mui/material/Box'
+import Paper from '@mui/material/Paper'
+import Stack from '@mui/material/Stack'
+import Typography from '@mui/material/Typography'
+import Table from '@mui/material/Table'
+import TableBody from '@mui/material/TableBody'
+import TableCell from '@mui/material/TableCell'
+import TableContainer from '@mui/material/TableContainer'
+import TableHead from '@mui/material/TableHead'
+import TableRow from '@mui/material/TableRow'
+import TextField from '@mui/material/TextField'
+import MenuItem from '@mui/material/MenuItem'
+import Chip from '@mui/material/Chip'
 
 interface Props {
   data: BalanceMatrixDto
@@ -13,91 +26,108 @@ export function BalanceMatrix({ data }: Props) {
 
   const displayPositions = filterPos === 'all' ? positions : positions.filter(p => p === filterPos)
 
-  // When filtering by position, sort rows by that position count ascending (fewest first)
   const sortedRows = filterPos === 'all'
     ? rows
     : [...rows].sort((a, b) => ((a.counts?.[filterPos] ?? 0) - (b.counts?.[filterPos] ?? 0)))
 
   return (
-    <div>
-      <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-        <label style={{ fontSize: 14 }}>
-          Filter position:{' '}
-          <select value={filterPos} onChange={e => setFilterPos(e.target.value)}>
-            <option value="all">All positions</option>
-            {positions.map(p => <option key={p} value={p}>{p}</option>)}
-          </select>
-        </label>
-      </div>
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ borderCollapse: 'collapse', fontSize: 13, minWidth: '100%' }}>
-          <thead>
-            <tr>
-              <th style={{ ...thStyle, minWidth: 120, position: 'sticky', left: 0, background: '#fff' }}>
-                Player
-              </th>
-              {displayPositions.map(pos => (
-                <th key={pos} style={thStyle}>{pos}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {sortedRows.map(row => (
-              <tr key={row.playerId} style={{ opacity: row.isActive ? 1 : 0.55 }}>
-                <td style={{
-                  ...tdStyle,
-                  fontWeight: 500,
+    <Paper variant="outlined">
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={1.5}
+        alignItems={{ sm: 'center' }}
+        sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}
+      >
+        <TextField
+          label="Filter position"
+          select
+          size="small"
+          value={filterPos}
+          onChange={e => setFilterPos(e.target.value)}
+          sx={{ minWidth: 200 }}
+        >
+          <MenuItem value="all">All positions</MenuItem>
+          {positions.map(p => (
+            <MenuItem key={p} value={p}>{p}</MenuItem>
+          ))}
+        </TextField>
+        <Box sx={{ flex: 1 }} />
+        <Typography variant="caption" color="text.secondary">
+          Yellow cells = zero innings at that position.
+        </Typography>
+      </Stack>
+
+      <TableContainer>
+        <Table size="small" stickyHeader>
+          <TableHead>
+            <TableRow>
+              <TableCell
+                sx={{
+                  minWidth: 140,
                   position: 'sticky',
                   left: 0,
-                  background: '#fff',
-                  whiteSpace: 'nowrap',
-                }}>
-                  {row.playerName}
-                  {!row.isActive && <span style={{ marginLeft: 6, fontSize: 11, color: '#888' }}>(inactive)</span>}
-                </td>
+                  zIndex: 3,
+                  bgcolor: 'background.paper',
+                }}
+              >
+                Player
+              </TableCell>
+              {displayPositions.map(pos => (
+                <TableCell key={pos} align="center">{pos}</TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {sortedRows.map(row => (
+              <TableRow key={row.playerId} sx={{ opacity: row.isActive ? 1 : 0.55 }} hover>
+                <TableCell
+                  sx={{
+                    fontWeight: 500,
+                    whiteSpace: 'nowrap',
+                    position: 'sticky',
+                    left: 0,
+                    zIndex: 1,
+                    bgcolor: 'background.paper',
+                  }}
+                >
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <span>{row.playerName}</span>
+                    {!row.isActive && <Chip label="Inactive" size="small" />}
+                  </Stack>
+                </TableCell>
                 {displayPositions.map(pos => {
                   const count = row.counts?.[pos] ?? 0
                   const isZero = count === 0
                   return (
-                    <td key={pos} style={{
-                      ...tdStyle,
-                      textAlign: 'center',
-                      background: isZero ? '#fff8dc' : undefined,
-                      fontWeight: isZero ? 600 : undefined,
-                      color: isZero ? '#b8860b' : undefined,
-                    }}>
+                    <TableCell
+                      key={pos}
+                      align="center"
+                      sx={{
+                        bgcolor: isZero ? 'warning.light' : undefined,
+                        color: isZero ? 'warning.contrastText' : undefined,
+                        fontWeight: isZero ? 700 : 400,
+                      }}
+                    >
                       {count}
-                    </td>
+                    </TableCell>
                   )
                 })}
-              </tr>
+              </TableRow>
             ))}
             {sortedRows.length === 0 && (
-              <tr>
-                <td colSpan={displayPositions.length + 1} style={{ padding: 16, color: '#888', textAlign: 'center' }}>
+              <TableRow>
+                <TableCell
+                  colSpan={displayPositions.length + 1}
+                  align="center"
+                  sx={{ py: 4, color: 'text.secondary' }}
+                >
                   No data yet. Record some games to see balance.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
-      </div>
-      <p style={{ fontSize: 12, color: '#888', marginTop: 8 }}>
-        Highlighted cells (yellow) indicate zero innings at that position.
-      </p>
-    </div>
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Paper>
   )
-}
-
-const thStyle: React.CSSProperties = {
-  padding: '8px 10px',
-  borderBottom: '2px solid #ddd',
-  textAlign: 'center',
-  fontWeight: 600,
-  whiteSpace: 'nowrap',
-}
-
-const tdStyle: React.CSSProperties = {
-  padding: '6px 10px',
-  borderBottom: '1px solid #eee',
 }

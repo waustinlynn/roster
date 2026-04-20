@@ -1,8 +1,12 @@
-import { useParams, Link } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useGetTeam } from '../hooks/useTeam'
 import { useGetRoster, useAddPlayer, useRateSkill, useDeactivatePlayer, useRenamePlayer } from '../hooks/useRoster'
 import { PlayerList } from '../components/roster/PlayerList'
 import { AddPlayerForm } from '../components/roster/AddPlayerForm'
+import Stack from '@mui/material/Stack'
+import Typography from '@mui/material/Typography'
+import Box from '@mui/material/Box'
+import CircularProgress from '@mui/material/CircularProgress'
 
 export function RosterPage() {
   const { teamId } = useParams<{ teamId: string }>()
@@ -34,29 +38,29 @@ export function RosterPage() {
   }
 
   return (
-    <div style={{ maxWidth: 800, margin: '40px auto', padding: 24 }}>
-      <div style={{ marginBottom: 16 }}>
-        <Link to={`/teams/${teamId}`} style={{ fontSize: 13, color: '#555' }}>← Dashboard</Link>
-      </div>
-      <h1 style={{ marginBottom: 4 }}>Roster</h1>
-      {teamQuery.data?.name && (
-        <p style={{ color: '#666', marginTop: 0, marginBottom: 20 }}>{teamQuery.data.name}</p>
-      )}
+    <Stack spacing={3}>
+      <Box>
+        <Typography variant="h4">Roster</Typography>
+        <Typography variant="body2" color="text.secondary">
+          Manage players and their skill ratings.
+        </Typography>
+      </Box>
+
+      <AddPlayerForm onAdd={handleAdd} />
 
       {rosterQuery.isLoading ? (
-        <p style={{ color: '#888' }}>Loading…</p>
+        <Box sx={{ p: 4, display: 'flex', justifyContent: 'center' }}>
+          <CircularProgress size={28} />
+        </Box>
       ) : (
-        <>
-          <AddPlayerForm onAdd={handleAdd} />
-          <PlayerList
-            players={players}
-            skills={skills}
-            onRate={handleRate}
-            onRename={handleRename}
-            onDeactivate={handleDeactivate}
-          />
-        </>
+        <PlayerList
+          players={players}
+          skills={skills}
+          onRate={handleRate}
+          onRename={handleRename}
+          onDeactivate={handleDeactivate}
+        />
       )}
-    </div>
+    </Stack>
   )
 }

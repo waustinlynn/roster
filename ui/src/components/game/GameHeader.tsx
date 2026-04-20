@@ -1,4 +1,10 @@
 import type { GameDto } from '../../api/index'
+import Stack from '@mui/material/Stack'
+import Typography from '@mui/material/Typography'
+import Chip from '@mui/material/Chip'
+import Button from '@mui/material/Button'
+import Box from '@mui/material/Box'
+import LockIcon from '@mui/icons-material/Lock'
 
 interface Props {
   game: GameDto
@@ -8,26 +14,53 @@ interface Props {
 
 export function GameHeader({ game, onLock, locking }: Props) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
-      <div>
-        <h2 style={{ margin: 0 }}>
-          {game.date}
-          {game.opponent && <span style={{ fontWeight: 400 }}> vs {game.opponent}</span>}
-        </h2>
-        <div style={{ fontSize: 14, color: '#555', marginTop: 4 }}>
-          {game.inningCount} innings
-          {game.isLocked && <span style={{ marginLeft: 8, color: '#c00', fontWeight: 600 }}>🔒 LOCKED</span>}
-        </div>
-      </div>
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: { xs: 'flex-start', sm: 'center' },
+        flexDirection: { xs: 'column', sm: 'row' },
+        gap: 2,
+      }}
+    >
+      <Box>
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <Typography variant="h4" component="h1">
+            {game.date}
+          </Typography>
+          {game.opponent && (
+            <Typography variant="h5" component="span" color="text.secondary" fontWeight={400}>
+              vs {game.opponent}
+            </Typography>
+          )}
+        </Stack>
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
+          <Typography variant="body2" color="text.secondary">
+            {game.inningCount} innings
+          </Typography>
+          {game.isLocked && (
+            <Chip
+              icon={<LockIcon />}
+              label="Locked"
+              size="small"
+              color="default"
+              variant="outlined"
+            />
+          )}
+        </Stack>
+      </Box>
+
       {!game.isLocked && (
-        <button
+        <Button
           onClick={onLock}
           disabled={locking}
-          style={{ padding: '8px 16px', background: '#333', color: '#fff', border: 'none', cursor: 'pointer', borderRadius: 4 }}
+          variant="contained"
+          color="primary"
+          startIcon={<LockIcon />}
         >
-          {locking ? 'Locking…' : 'Lock Game'}
-        </button>
+          {locking ? 'Locking…' : 'Lock game'}
+        </Button>
       )}
-    </div>
+    </Box>
   )
 }

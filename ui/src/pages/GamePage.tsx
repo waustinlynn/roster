@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useGetTeam } from '../hooks/useTeam'
 import { useGetRoster } from '../hooks/useRoster'
 import {
@@ -13,6 +13,24 @@ import {
 import { GameHeader } from '../components/game/GameHeader'
 import { BattingOrderGrid } from '../components/game/BattingOrderGrid'
 import type { FieldingAssignmentDto, InningScoreDto } from '../api/index'
+import Box from '@mui/material/Box'
+import Paper from '@mui/material/Paper'
+import Stack from '@mui/material/Stack'
+import Typography from '@mui/material/Typography'
+import Chip from '@mui/material/Chip'
+import Button from '@mui/material/Button'
+import Alert from '@mui/material/Alert'
+import CircularProgress from '@mui/material/CircularProgress'
+import TextField from '@mui/material/TextField'
+import Table from '@mui/material/Table'
+import TableBody from '@mui/material/TableBody'
+import TableCell from '@mui/material/TableCell'
+import TableContainer from '@mui/material/TableContainer'
+import TableHead from '@mui/material/TableHead'
+import TableRow from '@mui/material/TableRow'
+import SaveIcon from '@mui/icons-material/Save'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import CancelIcon from '@mui/icons-material/Cancel'
 
 export function GamePage() {
   const { teamId, gameId } = useParams<{ teamId: string; gameId: string }>()
@@ -28,11 +46,15 @@ export function GamePage() {
   const lockGame = useLockGame(teamId!, gameId!)
 
   if (gameQuery.isLoading || rosterQuery.isLoading) {
-    return <div style={{ margin: '40px auto', padding: 24 }}>Loading…</div>
+    return (
+      <Box sx={{ p: 6, display: 'flex', justifyContent: 'center' }}>
+        <CircularProgress />
+      </Box>
+    )
   }
 
   if (!gameQuery.data) {
-    return <div style={{ margin: '40px auto', padding: 24, color: 'red' }}>Game not found.</div>
+    return <Alert severity="error">Game not found.</Alert>
   }
 
   const game = gameQuery.data
@@ -65,52 +87,50 @@ export function GamePage() {
   }
 
   return (
-    <div style={{ padding: '40px 24px' }}>
-      <div style={{ marginBottom: 16 }}>
-        <Link to={`/teams/${teamId}`} style={{ fontSize: 13, color: '#555' }}>← Dashboard</Link>
-      </div>
-
+    <Stack spacing={3}>
       <GameHeader game={game} onLock={handleLock} locking={lockGame.isPending} />
 
       {isLocked && (
-        <div style={{ background: '#fff3cd', border: '1px solid #ffc107', padding: '10px 14px', borderRadius: 6, marginBottom: 20, fontSize: 14 }}>
+        <Alert severity="warning">
           This game is locked and cannot be edited.
-        </div>
+        </Alert>
       )}
 
-      {/* Absence section */}
-      <section style={{ marginBottom: 32 }}>
-        <h3 style={{ marginBottom: 8 }}>Player Availability</h3>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {activePlayers.map(p => {
-            const isAbsent = absentIds.includes(p.playerId!)
-            return (
-              <button
-                key={p.playerId}
-                onClick={() => handleToggleAbsent(p.playerId!)}
-                disabled={isLocked}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: 4,
-                  border: '1px solid',
-                  cursor: isLocked ? 'default' : 'pointer',
-                  background: isAbsent ? '#fee' : '#efe',
-                  borderColor: isAbsent ? '#c00' : '#090',
-                  color: isAbsent ? '#c00' : '#060',
-                  fontSize: 13,
-                  fontWeight: isAbsent ? 600 : 400,
-                }}
-              >
-                {p.name} {isAbsent ? '(absent)' : '✓'}
-              </button>
-            )
-          })}
-          {activePlayers.length === 0 && (
-            <p style={{ color: '#888', fontSize: 14 }}>No active players. Add players on the Roster page.</p>
-          )}
-        </div>
-        {!isLocked && <p style={{ fontSize: 12, color: '#888', marginTop: 6 }}>Click a player to toggle their availability for this game.</p>}
-      </section>
+      <Paper variant="outlined" sx={{ p: 2 }}>
+        <Typography variant="h6" gutterBottom>Player availability</Typography>
+        {activePlayers.length === 0 ? (
+          <Typography color="text.secondary">
+            No active players. Add players on the Roster page.
+          </Typography>
+        ) : (
+          <>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              {activePlayers.map(p => {
+                const isAbsent = absentIds.includes(p.playerId!)
+                return (
+                  <Chip
+                    key={p.playerId}
+                    label={p.name}
+                    icon={isAbsent ? <CancelIcon /> : <CheckCircleIcon />}
+                    color={isAbsent ? 'error' : 'success'}
+                    variant={isAbsent ? 'outlined' : 'filled'}
+                    onClick={isLocked ? undefined : () => handleToggleAbsent(p.playerId!)}
+                    disabled={isLocked}
+                    sx={{
+                      fontWeight: isAbsent ? 600 : 400,
+                    }}
+                  />
+                )
+              })}
+            </Box>
+            {!isLocked && (
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.5 }}>
+                Click a player to toggle availability for this game.
+              </Typography>
+            )}
+          </>
+        )}
+      </Paper>
 
       <ScoreGrid
         inningCount={game.inningCount ?? 6}
@@ -124,6 +144,7 @@ export function GamePage() {
           })
         }
         isSaving={recordGameScores.isPending}
+        isLocked={isLocked}
       />
 
       <BattingOrderGrid
@@ -136,7 +157,7 @@ export function GamePage() {
         isLocked={isLocked}
         onSaveLineup={handleSaveLineup}
       />
-    </div>
+    </Stack>
   )
 }
 
@@ -157,12 +178,14 @@ function ScoreGrid({
   savedScores,
   onSaveScores,
   isSaving,
+  isLocked,
 }: {
   inningCount: number
   opponentName: string
   savedScores: Record<string, InningScoreDto>
   onSaveScores: (scores: Record<string, { homeScore: number; awayScore: number }>) => Promise<void>
   isSaving: boolean
+  isLocked: boolean
 }) {
   const innings = Array.from({ length: inningCount }, (_, i) => i + 1)
   const [scores, setScores] = useState<InningScores>(() => buildInitialScores(inningCount, savedScores))
@@ -170,6 +193,7 @@ function ScoreGrid({
 
   useEffect(() => {
     setScores(buildInitialScores(inningCount, savedScores))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(savedScores), inningCount])
 
   const setScore = (inning: number, side: 'home' | 'away', raw: string) => {
@@ -194,63 +218,83 @@ function ScoreGrid({
   const awayTotal = innings.reduce((sum, i) => sum + scores[i].away, 0)
 
   return (
-    <section style={{ marginBottom: 32 }}>
-      <h3 style={{ marginBottom: 8 }}>Score by Inning</h3>
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ borderCollapse: 'collapse', fontSize: 14 }}>
-          <thead>
-            <tr>
-              <th style={scoreTh}></th>
-              {innings.map(i => <th key={i} style={scoreTh}>{i}</th>)}
-              <th style={{ ...scoreTh, borderLeft: '2px solid #ccc' }}>R</th>
-            </tr>
-          </thead>
-          <tbody>
+    <Paper variant="outlined">
+      <Box sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: 'divider' }}>
+        <Typography variant="h6">Score by inning</Typography>
+      </Box>
+      <TableContainer>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell />
+              {innings.map(i => (
+                <TableCell key={i} align="center">{i}</TableCell>
+              ))}
+              <TableCell align="center" sx={{ borderLeft: 2, borderColor: 'divider', fontWeight: 700 }}>
+                R
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
             {(['home', 'away'] as const).map(side => (
-              <tr key={side}>
-                <td style={{ ...scoreTd, fontWeight: 600, paddingRight: 16, whiteSpace: 'nowrap' }}>
+              <TableRow key={side}>
+                <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap', pr: 2 }}>
                   {side === 'home' ? 'Us' : opponentName}
-                </td>
+                </TableCell>
                 {innings.map(i => (
-                  <td key={i} style={scoreTd}>
-                    <input
+                  <TableCell key={i} align="center" sx={{ p: 0.5 }}>
+                    <TextField
                       type="number"
-                      min={0}
                       value={scores[i][side]}
                       onChange={e => setScore(i, side, e.target.value)}
-                      style={{ width: 44, textAlign: 'center', fontSize: 14, padding: '3px 4px' }}
+                      size="small"
+                      disabled={isLocked}
+                      inputProps={{
+                        min: 0,
+                        style: { textAlign: 'center', padding: '4px 4px', width: 34 },
+                      }}
+                      sx={{ width: 54 }}
                     />
-                  </td>
+                  </TableCell>
                 ))}
-                <td style={{ ...scoreTd, borderLeft: '2px solid #ccc', fontWeight: 700, textAlign: 'center', minWidth: 36 }}>
+                <TableCell
+                  align="center"
+                  sx={{
+                    borderLeft: 2,
+                    borderColor: 'divider',
+                    fontWeight: 700,
+                    fontSize: 16,
+                  }}
+                >
                   {side === 'home' ? homeTotal : awayTotal}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
-      </div>
-      <div style={{ display: 'flex', gap: 12, marginTop: 12, alignItems: 'center' }}>
-        <button onClick={handleSave} disabled={isSaving}>
-          {isSaving ? 'Saving…' : 'Save Scores'}
-        </button>
-        {saveError && <span style={{ color: 'red', fontSize: 13 }}>{saveError}</span>}
-      </div>
-    </section>
+          </TableBody>
+        </Table>
+      </TableContainer>
+      {!isLocked && (
+        <Stack
+          direction="row"
+          spacing={2}
+          alignItems="center"
+          sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}
+        >
+          <Button
+            variant="contained"
+            startIcon={<SaveIcon />}
+            onClick={handleSave}
+            disabled={isSaving}
+          >
+            {isSaving ? 'Saving…' : 'Save scores'}
+          </Button>
+          {saveError && (
+            <Alert severity="error" sx={{ flex: 1 }} onClose={() => setSaveError(null)}>
+              {saveError}
+            </Alert>
+          )}
+        </Stack>
+      )}
+    </Paper>
   )
-}
-
-const scoreTh: React.CSSProperties = {
-  padding: '6px 8px',
-  borderBottom: '2px solid #ddd',
-  textAlign: 'center',
-  fontWeight: 600,
-  fontSize: 13,
-  minWidth: 48,
-}
-
-const scoreTd: React.CSSProperties = {
-  padding: '4px 6px',
-  borderBottom: '1px solid #eee',
-  textAlign: 'center',
 }

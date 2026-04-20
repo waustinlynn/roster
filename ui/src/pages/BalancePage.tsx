@@ -1,28 +1,34 @@
-import { useParams, Link } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useGetBalanceMatrix } from '../hooks/useBalance'
 import { BalanceMatrix } from '../components/balance/BalanceMatrix'
+import Box from '@mui/material/Box'
+import Stack from '@mui/material/Stack'
+import Typography from '@mui/material/Typography'
+import Alert from '@mui/material/Alert'
+import CircularProgress from '@mui/material/CircularProgress'
 
 export function BalancePage() {
   const { teamId } = useParams<{ teamId: string }>()
   const balanceQuery = useGetBalanceMatrix(teamId!)
 
   return (
-    <div style={{ maxWidth: 1100, margin: '40px auto', padding: 24 }}>
-      <div style={{ marginBottom: 16 }}>
-        <Link to={`/teams/${teamId}`} style={{ fontSize: 13, color: '#555' }}>← Dashboard</Link>
-      </div>
-      <h1 style={{ marginBottom: 4 }}>Playing Time Balance</h1>
-      <p style={{ color: '#666', marginTop: 0, marginBottom: 24, fontSize: 14 }}>
-        Inning counts per player per position across all recorded games.
-      </p>
+    <Stack spacing={3}>
+      <Box>
+        <Typography variant="h4">Playing time balance</Typography>
+        <Typography variant="body2" color="text.secondary">
+          Inning counts per player per position across all recorded games.
+        </Typography>
+      </Box>
 
       {balanceQuery.isLoading ? (
-        <p style={{ color: '#888' }}>Loading…</p>
+        <Box sx={{ p: 4, display: 'flex', justifyContent: 'center' }}>
+          <CircularProgress size={28} />
+        </Box>
       ) : balanceQuery.isError ? (
-        <p style={{ color: 'red' }}>Failed to load balance data.</p>
+        <Alert severity="error">Failed to load balance data.</Alert>
       ) : balanceQuery.data ? (
         <BalanceMatrix data={balanceQuery.data} />
       ) : null}
-    </div>
+    </Stack>
   )
 }

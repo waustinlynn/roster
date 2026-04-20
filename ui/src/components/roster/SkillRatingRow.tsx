@@ -1,3 +1,8 @@
+import Box from '@mui/material/Box'
+import Stack from '@mui/material/Stack'
+import Typography from '@mui/material/Typography'
+import Rating from '@mui/material/Rating'
+
 interface Props {
   skills: string[]
   currentRatings: Record<string, number>
@@ -5,25 +10,28 @@ interface Props {
 }
 
 export function SkillRatingRow({ skills, currentRatings, onRate }: Props) {
+  if (skills.length === 0) return null
   return (
-    <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+    <Stack
+      direction="row"
+      spacing={3}
+      useFlexGap
+      flexWrap="wrap"
+    >
       {skills.map(skill => (
-        <label key={skill} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, fontSize: 13 }}>
-          <span>{skill}</span>
-          <select
-            value={currentRatings[skill] ?? ''}
-            onChange={e => {
-              const val = Number(e.target.value)
-              if (val >= 1 && val <= 5) onRate(skill, val)
+        <Box key={skill} sx={{ display: 'flex', flexDirection: 'column', minWidth: 120 }}>
+          <Typography variant="caption" color="text.secondary">
+            {skill}
+          </Typography>
+          <Rating
+            value={currentRatings[skill] ?? 0}
+            max={5}
+            onChange={(_, value) => {
+              if (value && value >= 1 && value <= 5) onRate(skill, value)
             }}
-          >
-            <option value="">—</option>
-            {[1, 2, 3, 4, 5].map(n => (
-              <option key={n} value={n}>{n}</option>
-            ))}
-          </select>
-        </label>
+          />
+        </Box>
       ))}
-    </div>
+    </Stack>
   )
 }

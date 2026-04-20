@@ -1,5 +1,24 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import type { PlayerResponse, FieldingAssignmentDto } from '../../api/index'
+import Paper from '@mui/material/Paper'
+import Stack from '@mui/material/Stack'
+import Typography from '@mui/material/Typography'
+import Button from '@mui/material/Button'
+import IconButton from '@mui/material/IconButton'
+import Tooltip from '@mui/material/Tooltip'
+import Table from '@mui/material/Table'
+import TableBody from '@mui/material/TableBody'
+import TableCell from '@mui/material/TableCell'
+import TableContainer from '@mui/material/TableContainer'
+import TableHead from '@mui/material/TableHead'
+import TableRow from '@mui/material/TableRow'
+import Select from '@mui/material/Select'
+import MenuItem from '@mui/material/MenuItem'
+import Alert from '@mui/material/Alert'
+import UploadFileIcon from '@mui/icons-material/UploadFile'
+import SaveIcon from '@mui/icons-material/Save'
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
 
 interface Props {
   inningCount: number
@@ -80,6 +99,7 @@ export function BattingOrderGrid({
   useEffect(() => {
     setOrder(buildOrder())
     setFielding(buildFielding())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialOrder.join(','), available.map(p => p.playerId).join(','), JSON.stringify(savedAssignments)])
 
   const move = (idx: number, dir: -1 | 1) => {
@@ -129,7 +149,6 @@ export function BattingOrderGrid({
         if (lines.length < 2) throw new Error('CSV must have a header row and at least one player row.')
 
         const headers = lines[0].split(',').map(h => h.trim())
-        // headers[0] = "Player", headers[1..] = inning numbers (e.g. "1","2",...)
         const inningHeaders = headers.slice(1)
 
         const newOrder: string[] = []
@@ -151,7 +170,6 @@ export function BattingOrderGrid({
           }
         }
 
-        // Append any available players not matched in the CSV
         for (const p of available) {
           if (!newOrder.includes(p.playerId!)) newOrder.push(p.playerId!)
         }
@@ -187,15 +205,26 @@ export function BattingOrderGrid({
   }
 
   if (available.length === 0) {
-    return <p style={{ color: '#888', fontSize: 14 }}>No available players.</p>
+    return (
+      <Paper variant="outlined" sx={{ p: 3 }}>
+        <Typography color="text.secondary">No available players.</Typography>
+      </Paper>
+    )
   }
 
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-        <h3 style={{ margin: 0 }}>Batting Order &amp; Fielding</h3>
+    <Paper variant="outlined">
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={1.5}
+        alignItems={{ sm: 'center' }}
+        sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}
+      >
+        <Typography variant="h6" sx={{ flex: 1 }}>
+          Batting order &amp; fielding
+        </Typography>
         {!isLocked && (
-          <>
+          <Stack direction="row" spacing={1} alignItems="center">
             <input
               ref={fileInputRef}
               type="file"
@@ -203,91 +232,141 @@ export function BattingOrderGrid({
               style={{ display: 'none' }}
               onChange={handleImportCsv}
             />
-            <button onClick={() => fileInputRef.current?.click()} style={{ fontSize: 13 }}>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<UploadFileIcon />}
+              onClick={() => fileInputRef.current?.click()}
+            >
               Import CSV
-            </button>
-            {importError && <span style={{ color: 'red', fontSize: 13 }}>{importError}</span>}
-          </>
+            </Button>
+          </Stack>
         )}
-      </div>
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-          <thead>
-            <tr>
-              <th style={thStyle}>#</th>
-              <th style={thStyle}>Player</th>
-              {!isLocked && <th style={{ ...thStyle, width: 56 }} />}
+      </Stack>
+
+      {importError && (
+        <Alert severity="error" sx={{ m: 2 }} onClose={() => setImportError(null)}>
+          {importError}
+        </Alert>
+      )}
+
+      <TableContainer>
+        <Table size="small" stickyHeader>
+          <TableHead>
+            <TableRow>
+              <TableCell align="center" sx={{ width: 48 }}>#</TableCell>
+              <TableCell>Player</TableCell>
+              {!isLocked && <TableCell align="center" sx={{ width: 88 }}>Order</TableCell>}
               {innings.map(i => (
-                <th key={i} style={thStyle}>Inning {i}</th>
+                <TableCell key={i} align="center">Inning {i}</TableCell>
               ))}
-            </tr>
-          </thead>
-          <tbody>
+            </TableRow>
+          </TableHead>
+          <TableBody>
             {order.map((playerId, idx) => {
               const player = available.find(p => p.playerId === playerId)
               if (!player) return null
               return (
-                <tr key={playerId}>
-                  <td style={{ ...tdStyle, color: '#888', textAlign: 'center', width: 32 }}>{idx + 1}</td>
-                  <td style={{ ...tdStyle, fontWeight: 500, whiteSpace: 'nowrap' }}>{player.name}</td>
+                <TableRow key={playerId} hover>
+                  <TableCell align="center" sx={{ color: 'text.secondary' }}>
+                    {idx + 1}
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 500, whiteSpace: 'nowrap' }}>
+                    {player.name}
+                  </TableCell>
                   {!isLocked && (
-                    <td style={{ ...tdStyle, width: 56 }}>
-                      <button onClick={() => move(idx, -1)} disabled={idx === 0} style={arrowBtn}>▲</button>
-                      {' '}
-                      <button onClick={() => move(idx, 1)} disabled={idx === order.length - 1} style={arrowBtn}>▼</button>
-                    </td>
+                    <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
+                      <Tooltip title="Move up">
+                        <span>
+                          <IconButton
+                            size="small"
+                            onClick={() => move(idx, -1)}
+                            disabled={idx === 0}
+                          >
+                            <ArrowUpwardIcon fontSize="inherit" />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                      <Tooltip title="Move down">
+                        <span>
+                          <IconButton
+                            size="small"
+                            onClick={() => move(idx, 1)}
+                            disabled={idx === order.length - 1}
+                          >
+                            <ArrowDownwardIcon fontSize="inherit" />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    </TableCell>
                   )}
                   {innings.map(inning => {
                     const isDupe = duplicateCells.has(`${String(inning)}-${playerId}`)
                     return (
-                    <td key={inning} style={{ ...tdStyle, boxShadow: isDupe ? 'inset 0 0 0 2px #c00' : undefined }}>
-                      <select
-                        value={fielding[String(inning)]?.[playerId] ?? 'Bench'}
-                        disabled={isLocked}
-                        onChange={e => setPosition(playerId, inning, e.target.value)}
-                        style={{ fontSize: 13 }}
+                      <TableCell
+                        key={inning}
+                        align="center"
+                        sx={{
+                          p: 0.5,
+                          bgcolor: isDupe ? 'error.light' : undefined,
+                        }}
                       >
-                        {allPositions.map(pos => (
-                          <option key={pos} value={pos}>{pos}</option>
-                        ))}
-                      </select>
-                    </td>
+                        <Select
+                          value={fielding[String(inning)]?.[playerId] ?? 'Bench'}
+                          disabled={isLocked}
+                          onChange={e => setPosition(playerId, inning, e.target.value)}
+                          size="small"
+                          variant="standard"
+                          disableUnderline
+                          sx={{
+                            minWidth: 110,
+                            fontSize: 13,
+                            '& .MuiSelect-select': { py: 0.5 },
+                          }}
+                        >
+                          {allPositions.map(pos => (
+                            <MenuItem key={pos} value={pos} dense>
+                              {pos}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </TableCell>
                     )
                   })}
-                </tr>
+                </TableRow>
               )
             })}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+        </Table>
+      </TableContainer>
+
       {!isLocked && (
-        <div style={{ display: 'flex', gap: 12, marginTop: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-          <button onClick={handleSaveLineup} disabled={saving}>
-            {saving ? 'Saving…' : 'Save Lineup'}
-          </button>
-          {saveError && <span style={{ color: 'red', fontSize: 13 }}>{saveError}</span>}
-        </div>
+        <Stack
+          direction="row"
+          spacing={2}
+          alignItems="center"
+          sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}
+        >
+          <Button
+            variant="contained"
+            startIcon={<SaveIcon />}
+            onClick={handleSaveLineup}
+            disabled={saving}
+          >
+            {saving ? 'Saving…' : 'Save lineup'}
+          </Button>
+          {duplicateCells.size > 0 && (
+            <Typography variant="caption" color="error">
+              Duplicate position assignments detected — highlighted cells.
+            </Typography>
+          )}
+          {saveError && (
+            <Alert severity="error" sx={{ flex: 1 }} onClose={() => setSaveError(null)}>
+              {saveError}
+            </Alert>
+          )}
+        </Stack>
       )}
-    </div>
+    </Paper>
   )
-}
-
-const thStyle: React.CSSProperties = {
-  textAlign: 'left',
-  padding: '6px 10px',
-  borderBottom: '2px solid #ddd',
-  fontSize: 13,
-  fontWeight: 600,
-  whiteSpace: 'nowrap',
-}
-
-const tdStyle: React.CSSProperties = {
-  padding: '5px 8px',
-  borderBottom: '1px solid #eee',
-  fontSize: 13,
-}
-
-const arrowBtn: React.CSSProperties = {
-  fontSize: 11,
-  padding: '2px 5px',
 }
