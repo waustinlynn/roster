@@ -11,6 +11,7 @@ import {
   usePutTeamsTeamIdGamesGameIdInningsInningNumberScore as useRecordInningScoreMutation,
   usePutTeamsTeamIdGamesGameIdScores as useRecordGameScoresMutation,
   usePostTeamsTeamIdGamesGameIdLock as useLockGameMutation,
+  usePutTeamsTeamIdGamesGameIdRemark as useRecordGameRemarkMutation,
   getGetTeamsTeamIdGamesQueryKey as getGetGamesQueryKey,
   getGetTeamsTeamIdGamesGameIdQueryKey as getGetGameQueryKey,
   getGetTeamsTeamIdBalanceQueryKey as getGetBalanceQueryKey,
@@ -96,6 +97,15 @@ export function useRecordGameScores(teamId: string, gameId: string) {
 export function useRecordInningScore(teamId: string, gameId: string) {
   const qc = useQueryClient()
   return useRecordInningScoreMutation({
+    mutation: {
+      onSuccess: () => qc.invalidateQueries({ queryKey: getGetGameQueryKey(teamId, gameId) }),
+    },
+  })
+}
+
+export function useRecordGameRemark(teamId: string, gameId: string) {
+  const qc = useQueryClient()
+  return useRecordGameRemarkMutation({
     mutation: {
       onSuccess: () => qc.invalidateQueries({ queryKey: getGetGameQueryKey(teamId, gameId) }),
     },

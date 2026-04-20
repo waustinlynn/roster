@@ -8,6 +8,7 @@ using Roster.Application.Commands.LockGame;
 using Roster.Application.Commands.MarkPlayerAbsent;
 using Roster.Application.Commands.RevokePlayerAbsence;
 using Roster.Application.Commands.SetBattingOrder;
+using Roster.Application.Commands.RecordGameRemark;
 using Roster.Application.Commands.RecordGameScores;
 using Roster.Application.Commands.RecordInningScore;
 using Roster.Application.Commands.UpdateGameLineup;
@@ -226,6 +227,26 @@ public class GamesController : BaseController
         await _mediator.Send(new LockGameCommand(teamId, gameId), ct);
         return NoContent();
     }
+
+    /// <summary>Record a free-form remark for the game.</summary>
+    /// <remarks>
+    /// Stores a natural language summary for the game. Replaces any previous remark.
+    /// Intended to capture qualitative observations (e.g. a player excelling at a position
+    /// despite a high run total in that inning). This text is weighted more heavily than
+    /// raw inning data during analysis.
+    /// Requires X-Team-Secret header authentication.
+    /// </remarks>
+    [HttpPut("{gameId:guid}/remark")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RecordRemark(Guid teamId, Guid gameId, [FromBody] RecordGameRemarkRequest request, CancellationToken ct)
+    {
+        if (ResolvedTeamId != teamId) return Forbid();
+        await _mediator.Send(new RecordGameRemarkCommand(teamId, gameId, request.Remark), ct);
+        return NoContent();
+    }
 }
 
 public record CreateGameRequest(string Date, string? Opponent, int InningCount = 6);
@@ -239,3 +260,4 @@ public record UpdateLineupRequest(
 );
 public record RecordScoreRequest(int HomeScore, int AwayScore);
 public record RecordGameScoresRequest(Dictionary<string, RecordScoreRequest> InningScores);
+public record RecordGameRemarkRequest(string Remark);

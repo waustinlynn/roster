@@ -5,6 +5,7 @@ Auto-generated from all feature plans. Last updated: 2026-03-21
 ## Critical Rules
 
 - **Never wipe Redpanda data** (`docker compose down -v`, deleting volumes, or dropping the topic). Bad events must be fixed by making aggregates tolerate or skip them — not by destroying the event log.
+- **Always use LSP when available**. Default to using LSP to traverse code when it is available and fall back to bash tools if unavailable. 
 
 ## Active Technologies
 

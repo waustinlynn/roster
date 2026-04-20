@@ -14,6 +14,7 @@ public class GameAggregate
     public List<Guid> BattingOrder { get; private set; } = new();
     public Dictionary<int, List<FieldingAssignment>> InningAssignments { get; private set; } = new();
     public Dictionary<int, InningScore> InningScores { get; private set; } = new();
+    public string? Remarks { get; private set; }
 
     public void Apply(DomainEvent @event)
     {
@@ -27,6 +28,7 @@ public class GameAggregate
             case GameLocked e: Apply(e); break;
             case InningScoreRecorded e: Apply(e); break;
             case GameScoresRecorded e: Apply(e); break;
+            case GameRemarkRecorded e: Apply(e); break;
         }
     }
 
@@ -79,6 +81,8 @@ public class GameAggregate
     }
 
     private void Apply(GameLocked e) => IsLocked = true;
+
+    private void Apply(GameRemarkRecorded e) => Remarks = e.Remark;
 
     private void Apply(GameScoresRecorded e)
     {

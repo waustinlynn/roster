@@ -17,7 +17,8 @@ public record GameDto(
     IReadOnlyList<Guid> AbsentPlayerIds,
     IReadOnlyList<Guid> BattingOrder,
     IReadOnlyDictionary<int, IReadOnlyList<FieldingAssignmentDto>> InningAssignments,
-    IReadOnlyDictionary<int, InningScoreDto> InningScores);
+    IReadOnlyDictionary<int, InningScoreDto> InningScores,
+    string? Remarks);
 
 public record GameSummaryDto(
     Guid GameId,

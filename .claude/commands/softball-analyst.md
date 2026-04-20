@@ -45,7 +45,7 @@ Events that affect players:
 
 ### Games
 Key: `gameId`
-Track: `date`, `opponent`, `inningCount`, `isLocked`, `battingOrder[]`, `fieldingByInning` = `{ "1": { position: playerId }, ... }`, `scoreByInning` = `{ "1": { home, away } }`
+Track: `date`, `opponent`, `inningCount`, `isLocked`, `battingOrder[]`, `fieldingByInning` = `{ "1": { position: playerId }, ... }`, `scoreByInning` = `{ "1": { home, away } }`, `remark` = latest free-form text (nullable)
 
 Events that affect games:
 - `GameCreated` → register game
@@ -53,6 +53,8 @@ Events that affect games:
 - `BattingOrderSet` → record ordered player ID list
 - `InningFieldingAssigned` → for each assignment in `Assignments`, map `position → playerId` for that inning
 - `InningScoreRecorded` → record `{ homeScore, awayScore }` for that inning
+- `GameScoresRecorded` → for each entry in `InningScores`, record `{ homeScore, awayScore }` for that inning
+- `GameRemarkRecorded` → set `remark = Remark` (overwrites any previous remark)
 
 After processing all events, resolve player IDs to names everywhere for readability.
 
@@ -75,9 +77,33 @@ For each priority position (in order: Pitcher, 1st Base, Shortstop, 3rd Base, 2n
 - How many rough/bad innings?
 - Their skill ratings for reference
 
+### Incorporating Game Remarks
+
+If a game has a `remark`, treat it as **higher-priority evidence than the raw inning run totals** for that game. Specifically:
+
+- Parse the remark for any named players and positions mentioned positively (e.g. "Bailey pitched well", "Kiara excelled at 3B").
+- When a remark explicitly credits a player at a position, **do not penalize that player's record at that position for rough/bad innings in this game** — instead annotate those innings as "context-adjusted" and explain why in the analysis.
+- When a remark attributes runs to a specific cause (e.g. wild pitches, catcher battery issues), redistribute that context: do not count those innings against the players not responsible.
+- Remarks are coach-observed ground truth. A statistical pattern that contradicts a remark should be flagged as a data limitation, not treated as overriding the coach's direct observation.
+
 ---
 
-## Step 4: Produce the Analysis Report
+## Step 4: Check for Existing Analysis File
+
+Before producing the report, check whether an analysis file for today already exists:
+
+```bash
+ls ANALYSIS_$(date +%Y%m%d).md 2>/dev/null && echo "exists" || echo "not found"
+```
+
+- If the file **exists**: read its current contents, then **amend** it — append a new dated section heading (e.g. `## Updated Analysis — HH:MM`) followed by the updated findings. Do not discard the previous content.
+- If the file **does not exist**: create it fresh as `ANALYSIS_YYYYMMDD.md` (e.g. `ANALYSIS_20260420.md`). Write the full report to this file.
+
+In both cases, also print the report inline in the conversation so the user can read it immediately.
+
+---
+
+## Step 5: Produce the Analysis Report
 
 Output the following structured report. Be specific — name players and use numbers. Avoid vague language.
 
@@ -144,44 +170,15 @@ End with a brief bulleted list of the 3–5 most important takeaways from the an
 
 ---
 
-## Step 5: Generate CSV (only if requested)
+## Step 6: Generate CSV (only if requested)
 
-If the user asked for a CSV, generate a recommended lineup file.
+If the user asked for a CSV, execute the **`lineup-generator`** skill using the state already built in Steps 1–3 above (do not reload events from Kafka). Pass through:
+- The full player list with skill ratings
+- All game data including `fieldingByInning`, `scoreByInning`, and `remark`
+- The defensive correlation matrix built in Step 3 (position fitness scores per player)
+- The target game's `inningCount` and `battingOrder`
 
-**Format** (must match the import format exactly):
-
-```
-Player,1,2,3,4,5,6
-PlayerName,P,1B,SS,2B,3B,LF
-PlayerName,C,P,1B,SS,2B,3B
-```
-
-Rules:
-- First row: `Player` followed by inning numbers (1 through N, where N = inningCount of the target game, default 6)
-- Each subsequent row: player name (must match exactly as stored), then one position abbreviation per inning
-- Every player in the recommended batting order must appear exactly once
-- Every position must be assigned to exactly one player per inning (Bench is allowed for extras)
-- Rotate players through key positions across innings so no one sits too long
-
-**Position abbreviations for the CSV**:
-
-| Abbreviation | Full Name         |
-|--------------|-------------------|
-| P            | Pitcher           |
-| C            | Catcher           |
-| 1B           | 1st Base          |
-| 2B           | 2nd Base          |
-| 3B           | 3rd Base          |
-| SS           | Shortstop         |
-| LF           | Left Field        |
-| LC           | Left-Centre Field |
-| RC           | Right-Centre Field|
-| RF           | Right Field       |
-| BENCH        | Bench             |
-
-Put the strongest defenders at key positions (P, 1B, SS) in **innings 1–3** when the game is typically most contested. Rotate weaker players through the infield in later innings to ensure fair play time, as is standard at 8U.
-
-Write the CSV to a file named `recommended-lineup-<YYYY-MM-DD>.csv` using today's date. Confirm the file path after writing.
+The `lineup-generator` skill handles all assignment logic, constraint enforcement, and file output. Follow its steps exactly, starting at its **Step 2** (state is already loaded).
 
 ---
 
@@ -201,12 +198,12 @@ At 8U, most action is ground balls and short pop-ups. Very few balls are hit dee
 ### Why These Positions Matter Most (in order)
 
 **1. Pitcher (P)**
-The pitcher fields more balls than any other player at this age because:
-- Comebackers (balls hit directly to the pitcher) are the most common batted ball at 8U
-- The pitcher covers first base on balls hit to the right side of the infield
-- The pitcher-to-first combination is the most reliable out in 8U softball
-- A weak pitcher who can't field or throw means more errors and more runs
-- Pitcher Throwing + Catching are both critical
+This is **8U coach-pitch** — the coach throws pitches, not the player at P. The pitcher's defensive role is:
+- Field comebackers and ground balls hit back to the mound — the most common batted ball at 8U
+- Throw to 1B for the out — the pitcher-to-first combination is the most reliable out in 8U softball
+- Cover first base on balls hit to the right side of the infield
+- **Throwing is the dominant skill at P** (weight 80%). Catching matters secondarily (weight 20%) for fielding the ball cleanly before throwing. A high-Catching / low-Throwing player at P will field the ball but fail to convert outs. A high-Throwing player who fields adequately is preferable.
+- Never factor wild pitches into pitcher analysis — there is no live pitcher.
 
 **2. First Base (1B)**
 The first baseman receives throws on almost every ground ball in the infield. At 8U:
@@ -238,12 +235,12 @@ Second base is the most achievable infield throw:
 - Balls hit between 1B and 2B often become runs at 8U if no one covers first
 
 **6. Catcher (C)**
-The catcher is important primarily for:
-- Blocking wild pitches — passed balls directly allow baserunners to advance and score
-- Receiving the pitcher — a poor Catching-rated catcher means more wild pitches = more runs allowed
+This is **coach-pitch** — there is no live pitcher throwing wild pitches. The catcher's role is substantially reduced compared to live-pitch formats:
+- Primary job: receive throws from fielders during plays at the plate, back up wild throws home
 - Throwing out runners stealing 2B: **near-impossible at 8U**, do not factor this into analysis
-- Calling the pitch location matters far less at this age; fielding and blocking are what matters
-- The catcher-pitcher combination together creates a "battery" — if both are weak, runs mount fast from wild pitches and passed balls alone
+- **No wild pitches to block** — do not attribute runs to catcher-pitcher battery issues; the coach pitches
+- Catcher is the **lowest-value defensive position** in coach-pitch 8U. Place a solid, attentive player here but reserve your strongest Throwing/Catching players for P, 1B, and SS.
+- When analyzing run totals, never attribute them to wild pitches or passed balls from the catcher position in coach-pitch.
 
 **7. Outfield (LF, LC, RF, RC)**
 At 8U, the outfield is less critical for getting outs but still matters:

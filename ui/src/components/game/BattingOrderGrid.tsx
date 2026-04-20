@@ -16,6 +16,7 @@ import Select from '@mui/material/Select'
 import MenuItem from '@mui/material/MenuItem'
 import Alert from '@mui/material/Alert'
 import UploadFileIcon from '@mui/icons-material/UploadFile'
+import DownloadIcon from '@mui/icons-material/Download'
 import SaveIcon from '@mui/icons-material/Save'
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
@@ -46,6 +47,10 @@ const CSV_POSITION_MAP: Record<string, string> = {
   RF: 'Right Field',
   BENCH: 'Bench',
 }
+
+const POSITION_TO_CSV: Record<string, string> = Object.fromEntries(
+  Object.entries(CSV_POSITION_MAP).map(([k, v]) => [v, k])
+)
 
 const resolvePosition = (csv: string, allPositions: string[]): string => {
   const trimmed = csv.trim()
@@ -91,14 +96,24 @@ export function BattingOrderGrid({
 
   const [order, setOrder] = useState<string[]>(buildOrder)
   const [fielding, setFielding] = useState<Record<string, Record<string, string>>>(buildFielding)
+  const [savedOrder, setSavedOrder] = useState<string[]>(buildOrder)
+  const [savedFielding, setSavedFielding] = useState<Record<string, Record<string, string>>>(buildFielding)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [importError, setImportError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const isDirty =
+    JSON.stringify(order) !== JSON.stringify(savedOrder) ||
+    JSON.stringify(fielding) !== JSON.stringify(savedFielding)
+
   useEffect(() => {
-    setOrder(buildOrder())
-    setFielding(buildFielding())
+    const newOrder = buildOrder()
+    const newFielding = buildFielding()
+    setOrder(newOrder)
+    setFielding(newFielding)
+    setSavedOrder(newOrder)
+    setSavedFielding(newFielding)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialOrder.join(','), available.map(p => p.playerId).join(','), JSON.stringify(savedAssignments)])
 
@@ -197,11 +212,34 @@ export function BattingOrderGrid({
         }))
       }
       await onSaveLineup(order, inningAssignments)
+      setSavedOrder([...order])
+      setSavedFielding(JSON.parse(JSON.stringify(fielding)))
     } catch (err: unknown) {
       setSaveError(err instanceof Error ? err.message : 'Save failed')
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleExportCsv = () => {
+    const headers = ['Player', ...innings.map(String)]
+    const rows = order.map(playerId => {
+      const player = available.find(p => p.playerId === playerId)
+      const name = player?.name ?? ''
+      const cols = innings.map(inning => {
+        const pos = fielding[String(inning)]?.[playerId] ?? 'Bench'
+        return POSITION_TO_CSV[pos] ?? pos
+      })
+      return [name, ...cols].join(',')
+    })
+    const csv = [headers.join(','), ...rows].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'lineup.csv'
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   if (available.length === 0) {
@@ -223,15 +261,15 @@ export function BattingOrderGrid({
         <Typography variant="h6" sx={{ flex: 1 }}>
           Batting order &amp; fielding
         </Typography>
-        {!isLocked && (
-          <Stack direction="row" spacing={1} alignItems="center">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv"
-              style={{ display: 'none' }}
-              onChange={handleImportCsv}
-            />
+        <Stack direction="row" spacing={1} alignItems="center">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv"
+            style={{ display: 'none' }}
+            onChange={handleImportCsv}
+          />
+          {!isLocked && (
             <Button
               size="small"
               variant="outlined"
@@ -240,8 +278,16 @@ export function BattingOrderGrid({
             >
               Import CSV
             </Button>
-          </Stack>
-        )}
+          )}
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<DownloadIcon />}
+            onClick={handleExportCsv}
+          >
+            Export Lineup
+          </Button>
+        </Stack>
       </Stack>
 
       {importError && (
@@ -351,7 +397,7 @@ export function BattingOrderGrid({
             variant="contained"
             startIcon={<SaveIcon />}
             onClick={handleSaveLineup}
-            disabled={saving}
+            disabled={saving || !isDirty}
           >
             {saving ? 'Saving…' : 'Save lineup'}
           </Button>

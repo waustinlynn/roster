@@ -32,7 +32,8 @@ public class GetGameQueryHandler :
                     .ToList()),
             game.InningScores.ToDictionary(
                 kvp => kvp.Key,
-                kvp => new InningScoreDto(kvp.Value.HomeScore, kvp.Value.AwayScore)));
+                kvp => new InningScoreDto(kvp.Value.HomeScore, kvp.Value.AwayScore)),
+            game.Remarks);
 
         return Task.FromResult<GameDto?>(dto);
     }

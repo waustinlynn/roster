@@ -8,6 +8,7 @@ import {
   useRevokeAbsence,
   useUpdateGameLineup,
   useRecordGameScores,
+  useRecordGameRemark,
   useLockGame,
 } from '../hooks/useGame'
 import { GameHeader } from '../components/game/GameHeader'
@@ -43,6 +44,7 @@ export function GamePage() {
   const revokeAbsence = useRevokeAbsence(teamId!, gameId!)
   const updateLineup = useUpdateGameLineup(teamId!, gameId!)
   const recordGameScores = useRecordGameScores(teamId!, gameId!)
+  const recordRemark = useRecordGameRemark(teamId!, gameId!)
   const lockGame = useLockGame(teamId!, gameId!)
 
   if (gameQuery.isLoading || rosterQuery.isLoading) {
@@ -156,6 +158,18 @@ export function GamePage() {
         savedAssignments={game.inningAssignments ?? {}}
         isLocked={isLocked}
         onSaveLineup={handleSaveLineup}
+      />
+
+      <GameRemarks
+        savedRemark={game.remarks ?? ''}
+        isSaving={recordRemark.isPending}
+        onSave={(remark: string) =>
+          recordRemark.mutateAsync({
+            teamId: teamId!,
+            gameId: gameId!,
+            data: { remark },
+          })
+        }
       />
     </Stack>
   )
@@ -295,6 +309,64 @@ function ScoreGrid({
           )}
         </Stack>
       )}
+    </Paper>
+  )
+}
+
+function GameRemarks({
+  savedRemark,
+  isSaving,
+  onSave,
+}: {
+  savedRemark: string
+  isSaving: boolean
+  onSave: (remark: string) => Promise<unknown>
+}) {
+  const [remark, setRemark] = useState(savedRemark)
+  const [saveError, setSaveError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setRemark(savedRemark)
+  }, [savedRemark])
+
+  const handleSave = async () => {
+    setSaveError(null)
+    try {
+      await onSave(remark)
+    } catch {
+      setSaveError('Failed to save remarks.')
+    }
+  }
+
+  return (
+    <Paper variant="outlined" sx={{ p: 2 }}>
+      <Typography variant="h6" gutterBottom>Game Remarks</Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+        Free-form notes about this game. These observations take priority over raw inning data during analysis — use this to note when a player excelled at a position despite a high run total.
+      </Typography>
+      <TextField
+        multiline
+        minRows={3}
+        fullWidth
+        value={remark}
+        onChange={e => setRemark(e.target.value)}
+        placeholder="e.g. Bailey pitched exceptionally in innings 2–4, limiting hard contact. High run totals were largely due to wild pitches from the catcher battery, not fielding breakdowns."
+      />
+      <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 1.5 }}>
+        <Button
+          variant="contained"
+          startIcon={<SaveIcon />}
+          onClick={handleSave}
+          disabled={isSaving}
+        >
+          {isSaving ? 'Saving…' : 'Save remarks'}
+        </Button>
+        {saveError && (
+          <Alert severity="error" onClose={() => setSaveError(null)}>
+            {saveError}
+          </Alert>
+        )}
+      </Stack>
     </Paper>
   )
 }
