@@ -133,12 +133,20 @@ Fill positions in this order for every inning: **P → 1B → SS → 3B → 2B �
 
 Outfield slots to fill per inning = `N - 6` (the 6 infield+catcher spots). Outfield positions to use, in order of preference: LC, LF, RC, RF. If `N < 9`, some outfield slots may not exist; if `N > 9`, extras go to BENCH.
 
-Wait — actually compute field slots precisely:
+Compute field slots precisely:
 - Infield + C = 6 positions (P, 1B, 2B, 3B, SS, C)
 - Outfield slots = `min(N - 6, 4)` using LC, LF, RC, RF in that order
 - BENCH slots = `max(N - 10, 0)`
 
 Every inning, **every player appears exactly once** and **every position appears at most once** (BENCH may appear multiple times if `N > 10`).
+
+### Bench fairness (Hard constraint)
+
+Track `benchCount[player]` across innings. **No player may receive a 2nd bench inning until every player has received at least 1 bench inning.**
+
+Stated formally: when assigning a player to BENCH in inning `i`, if any other available player has `benchCount = 0` and is otherwise eligible (not already assigned this inning, not blocked by infield-minimum constraints), prefer that player for BENCH instead.
+
+This applies across the whole game, not per-inning. Once every player has 1 bench inning, additional bench innings are distributed by the same fairness logic (no player gets a 3rd until all have ≥ 2, etc.).
 
 ### Player selection rule (greedy with lookahead)
 
@@ -149,8 +157,9 @@ For each position in the fill order:
    - If filling an infield position: prefer players where `infieldCount[player] < infieldTarget[player]`. If all eligible players already meet their target, still pick the best available (the soft cap can flex).
    - If filling a non-infield position: prefer players who have already met their `infieldTarget` for infield. But **never assign a non-infield position to a player if doing so would make it mathematically impossible for them to reach their infield minimum** in the remaining innings.
      - Check: `infieldCount[player] + remaining_innings_for_player ≥ infieldTarget[player]`. If this constraint would be violated by assigning them to a non-infield slot, skip them and pick the next best.
-3. **Score-based selection**: among all eligible players passing the constraint check, pick the one with the highest `fitnessScore[player][position]`.
-4. Assign, increment `infieldCount[player]` if the position is infield.
+3. **Bench fairness (when filling BENCH)**: among eligible players, restrict the candidate pool to those with the **minimum** `benchCount` across all eligible players. Only after that filter, apply step 4.
+4. **Score-based selection**: among all eligible players passing the constraint check, pick the one with the highest `fitnessScore[player][position]`. For BENCH, pick the player with the **lowest** average infield fitness (sit the weaker defenders) among those tied at minimum `benchCount`.
+5. Assign, increment `infieldCount[player]` if the position is infield, or `benchCount[player]` if BENCH.
 
 ### Early vs. late inning strategy
 
@@ -166,6 +175,7 @@ After building the full grid, run these checks:
 1. **No duplicates**: each position appears exactly once per inning (BENCH excepted). If a duplicate exists, it is a bug in Step 5 — log the conflict and resolve by swapping the conflicting player to an open slot.
 2. **Infield minimum met**: every player has `infieldCount[player] ≥ 2`. If any player is short, find the inning where they are in the least important outfield/bench slot and a player with `infieldCount > 3` is in an infield slot — swap them. Repeat until satisfied.
 3. **Every player appears exactly once per inning**: no player is missing or double-booked.
+4. **Bench fairness**: for any player with `benchCount[player] ≥ 2`, every other player must have `benchCount ≥ 1`. If violated, find an inning where a `benchCount = 0` player is in a low-value field slot (e.g. RF, LF) and a `benchCount ≥ 2` player is on BENCH — swap them. Repeat until `max(benchCount) - min(benchCount) ≤ 1`.
 
 Log any swaps made during validation with a brief note explaining why.
 
@@ -216,7 +226,8 @@ using today's date. Confirm the file path after writing.
 After writing the file (or in preview mode, instead of writing), print the lineup grid as a readable table, then list:
 
 - **Infield innings per player**: a row for each player showing how many infield innings they received and at which positions.
-- **Constraint check**: confirm every player hit their infield minimum. Call out any player who received more than 3 infield innings and explain why.
+- **Bench innings per player**: a one-line summary of `benchCount` per player; confirm `max - min ≤ 1`.
+- **Constraint check**: confirm every player hit their infield minimum. Call out any player who received more than 3 infield innings and explain why. Confirm bench fairness (no player has 2+ bench innings while another has 0).
 - **Key placement rationale**: 1–2 sentences per priority position (P, 1B, SS) naming the players assigned in innings 1–3 and why (skill score, historical performance, or remark bonus).
 
 ---
@@ -229,6 +240,7 @@ After writing the file (or in preview mode, instead of writing), print the lineu
 | Infield maximum | **Soft** | Every player ≤ 3 infield innings. May exceed only when roster math forces it. |
 | No position duplicates | **Hard** | Each non-BENCH position assigned to exactly one player per inning. |
 | Every player appears once per inning | **Hard** | No player double-booked; no player missing from any inning. |
+| Bench fairness | **Hard** | No player gets a 2nd bench inning until every player has at least 1. Generally `max(benchCount) - min(benchCount) ≤ 1` across the game. |
 | Remark overrides stats | **Hard** | Coach remarks about a player excelling at a position must boost that assignment above what raw data alone would suggest. |
 | Fair play | **Guidance** | Lean toward rotation; avoid concentrating all infield time on a few players unless skill gap is extreme. |
 | Position priority | **Guidance** | Coach-pitch 8U: P is highest value (fielding/throwing to 1B), then 1B, SS, 3B, 2B. Catcher is lowest-value infield-adjacent position — no wild pitches to block. Place solid but not elite defenders at C. |

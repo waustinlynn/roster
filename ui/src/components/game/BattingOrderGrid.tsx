@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import type { PlayerResponse, FieldingAssignmentDto } from '../../api/index'
+import Chip from '@mui/material/Chip'
 import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
@@ -20,6 +21,9 @@ import DownloadIcon from '@mui/icons-material/Download'
 import SaveIcon from '@mui/icons-material/Save'
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
+import UndoIcon from '@mui/icons-material/Undo'
 
 interface Props {
   inningCount: number
@@ -51,6 +55,8 @@ const CSV_POSITION_MAP: Record<string, string> = {
 const POSITION_TO_CSV: Record<string, string> = Object.fromEntries(
   Object.entries(CSV_POSITION_MAP).map(([k, v]) => [v, k])
 )
+
+const INFIELD_POSITIONS = new Set(['Pitcher', '1st Base', '2nd Base', 'Shortstop', '3rd Base'])
 
 const resolvePosition = (csv: string, allPositions: string[]): string => {
   const trimmed = csv.trim()
@@ -130,6 +136,17 @@ export function BattingOrderGrid({
       ...prev,
       [String(inning)]: { ...prev[String(inning)], [playerId]: position },
     }))
+  }
+
+  const moveInning = (idx: number, dir: -1 | 1) => {
+    const a = String(innings[idx])
+    const b = String(innings[idx + dir])
+    setFielding(prev => ({ ...prev, [a]: prev[b], [b]: prev[a] }))
+  }
+
+  const discardChanges = () => {
+    setOrder([...savedOrder])
+    setFielding(JSON.parse(JSON.stringify(savedFielding)))
   }
 
   const duplicateCells = useMemo(() => {
@@ -303,8 +320,28 @@ export function BattingOrderGrid({
               <TableCell align="center" sx={{ width: 48 }}>#</TableCell>
               <TableCell>Player</TableCell>
               {!isLocked && <TableCell align="center" sx={{ width: 88 }}>Order</TableCell>}
-              {innings.map(i => (
-                <TableCell key={i} align="center">Inning {i}</TableCell>
+              {innings.map((i, idx) => (
+                <TableCell key={i} align="center" sx={{ whiteSpace: 'nowrap' }}>
+                  {isLocked ? `Inning ${i}` : (
+                    <Stack direction="row" alignItems="center" justifyContent="center" spacing={0.25}>
+                      <Tooltip title="Move inning left">
+                        <span>
+                          <IconButton size="small" onClick={() => moveInning(idx, -1)} disabled={idx === 0}>
+                            <ArrowBackIcon sx={{ fontSize: 14 }} />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                      <Typography variant="caption" sx={{ fontWeight: 600 }}>Inning {i}</Typography>
+                      <Tooltip title="Move inning right">
+                        <span>
+                          <IconButton size="small" onClick={() => moveInning(idx, 1)} disabled={idx === innings.length - 1}>
+                            <ArrowForwardIcon sx={{ fontSize: 14 }} />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    </Stack>
+                  )}
+                </TableCell>
               ))}
             </TableRow>
           </TableHead>
@@ -318,7 +355,23 @@ export function BattingOrderGrid({
                     {idx + 1}
                   </TableCell>
                   <TableCell sx={{ fontWeight: 500, whiteSpace: 'nowrap' }}>
-                    {player.name}
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <span>{player.name}</span>
+                      {(() => {
+                        const infieldCount = innings.filter(
+                          inning => INFIELD_POSITIONS.has(fielding[String(inning)]?.[playerId] ?? '')
+                        ).length
+                        return infieldCount > 0 ? (
+                          <Chip
+                            label={infieldCount}
+                            size="small"
+                            color="primary"
+                            variant="outlined"
+                            sx={{ height: 18, fontSize: 11, '& .MuiChip-label': { px: 0.75 } }}
+                          />
+                        ) : null
+                      })()}
+                    </Stack>
                   </TableCell>
                   {!isLocked && (
                     <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
@@ -354,7 +407,11 @@ export function BattingOrderGrid({
                         align="center"
                         sx={{
                           p: 0.5,
-                          bgcolor: isDupe ? 'error.light' : undefined,
+                          bgcolor: isDupe
+                            ? 'error.light'
+                            : (fielding[String(inning)]?.[playerId] ?? 'Bench') !== 'Bench'
+                              ? 'rgba(76, 175, 80, 0.12)'
+                              : undefined,
                         }}
                       >
                         <Select
@@ -401,6 +458,17 @@ export function BattingOrderGrid({
           >
             {saving ? 'Saving…' : 'Save lineup'}
           </Button>
+          {isDirty && (
+            <Button
+              variant="outlined"
+              color="inherit"
+              startIcon={<UndoIcon />}
+              onClick={discardChanges}
+              disabled={saving}
+            >
+              Discard changes
+            </Button>
+          )}
           {duplicateCells.size > 0 && (
             <Typography variant="caption" color="error">
               Duplicate position assignments detected — highlighted cells.

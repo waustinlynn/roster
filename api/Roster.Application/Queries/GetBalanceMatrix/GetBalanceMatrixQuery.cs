@@ -11,4 +11,5 @@ public record PlayerBalanceRow(
     Guid PlayerId,
     string PlayerName,
     bool IsActive,
-    IReadOnlyDictionary<string, int> Counts);
+    IReadOnlyDictionary<string, int> Counts,
+    decimal? AverageBattingPosition = null);

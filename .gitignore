@@ -42,6 +42,9 @@ crash.log
 # Docker
 .dockerignore
 
+# Local Redpanda data
+data/
+
 # Generated
 ui/src/api/index.ts
 openapi.json

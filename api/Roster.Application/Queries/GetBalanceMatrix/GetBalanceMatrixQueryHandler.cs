@@ -23,6 +23,12 @@ public class GetBalanceMatrixQueryHandler : IRequestHandler<GetBalanceMatrixQuer
                 p => p.PlayerId,
                 _ => allPositions.ToDictionary(pos => pos, _ => 0));
 
+        // Track batting order positions for each player
+        var battingPositions = team.Players.Values
+            .ToDictionary(
+                p => p.PlayerId,
+                _ => new List<int>());
+
         // Accumulate from all game inning assignments
         foreach (var game in games)
         {
@@ -37,6 +43,15 @@ public class GetBalanceMatrixQueryHandler : IRequestHandler<GetBalanceMatrixQuer
                     }
                 }
             }
+
+            // Track batting order positions (1-based index)
+            foreach (var (index, playerId) in game.BattingOrder.Select((id, i) => (i + 1, id)))
+            {
+                if (battingPositions.ContainsKey(playerId))
+                {
+                    battingPositions[playerId].Add(index);
+                }
+            }
         }
 
         var rows = team.Players.Values
@@ -44,7 +59,10 @@ public class GetBalanceMatrixQueryHandler : IRequestHandler<GetBalanceMatrixQuer
                 p.PlayerId,
                 p.Name,
                 p.IsActive,
-                counts[p.PlayerId]))
+                counts[p.PlayerId],
+                battingPositions[p.PlayerId].Any()
+                    ? (decimal)battingPositions[p.PlayerId].Average()
+                    : null))
             .ToList();
 
         return Task.FromResult(new BalanceMatrixDto(allPositions, rows));

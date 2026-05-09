@@ -1,9 +1,18 @@
-version: '3.8'
-
 services:
+  redpanda-data-init:
+    image: alpine
+    user: "0"
+    volumes:
+      - ./data/redpanda:/data
+    command: ["chmod", "777", "/data"]
+    restart: "no"
+
   redpanda:
     image: docker.redpanda.com/redpandadata/redpanda:latest
     container_name: roster-redpanda
+    depends_on:
+      redpanda-data-init:
+        condition: service_completed_successfully
     command:
       - redpanda
       - start
@@ -22,7 +31,7 @@ services:
       - "8081:8081"
       - "8082:8082"
     volumes:
-      - redpanda-data:/var/lib/redpanda/data
+      - ./data/redpanda:/var/lib/redpanda/data
     healthcheck:
       test: ["CMD-SHELL", "rpk cluster health | grep -E 'Healthy:.+true' || exit 1"]
       interval: 15s
@@ -57,6 +66,3 @@ services:
     environment:
       - KAFKA_BROKERS=redpanda:29092
     restart: unless-stopped
-
-volumes:
-  redpanda-data:
